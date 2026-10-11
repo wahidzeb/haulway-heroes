@@ -101,7 +101,8 @@ body:not(.ads-on) .adslot{display:none!important}
 #wheel svg{width:100%;height:100%;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))}
 #stL,#stR{width:var(--sb);height:var(--sb);font-size:26px!important;border-radius:20px!important}
 .pedal{border-radius:12px!important;width:var(--pw);height:var(--ph);flex-direction:column;font-size:9px!important;letter-spacing:1px;
- background:repeating-linear-gradient(180deg,rgba(90,96,106,.6) 0 6px,rgba(46,51,60,.6) 6px 10px)!important;border:1.5px solid rgba(190,200,215,.6)!important;opacity:.72!important}
+ background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,0) 40%,rgba(0,0,0,.18)),repeating-linear-gradient(180deg,rgba(255,255,255,.08) 0 2px,rgba(0,0,0,0) 2px 10px),rgba(20,26,36,.5)!important;border:1.5px solid rgba(255,255,255,.26)!important;box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.25)!important;opacity:.8!important;justify-content:flex-end!important;padding-bottom:10px}
+#gas{border-bottom:4px solid rgba(61,220,132,.9)!important}#brake{border-bottom:4px solid rgba(255,90,90,.9)!important}
 .pedal.down{transform:perspective(300px) rotateX(18deg) scale(.96)!important;opacity:.95!important}
 #gas{height:calc(var(--ph) * 1.1)!important}#brake{width:calc(var(--pw) * 1.15)!important}
 #dirBtn{width:48px;height:34px;border-radius:10px!important;font-size:15px!important}
@@ -466,7 +467,7 @@ precision mediump float;
 varying vec3 vW,vN; varying vec3 vU; uniform sampler2D uTex; uniform float uDim;
 ${LIGHT_GLSL}
 void main(){ vec4 t=texture2D(uTex,vU.xy); if(t.a<.4) discard; vec3 n=normalize(vN); vec3 base=t.rgb*uDim;
-  vec3 col=shade(base,n,vW,.25,0.); float e=vU.z>1.5?uNight:vU.z; if(e>0.){ float dist=length(uCam-vW); float f=1.-exp(-dist*dist*uFogD*uFogD*.6); col=mix(col,mix(t.rgb*1.15,uFogCol,f),e*.85);} gl_FragColor=vec4(col,1.); }`;
+  vec3 col=shade(base,n,vW,.25,0.); if(vU.z>2.5){ float lm=step(t.a,.97)*uNight; col=mix(col,vec3(1.,.8,.48)*1.15,lm*.9); gl_FragColor=vec4(col,1.); return; } float e=vU.z>1.5?uNight:vU.z; if(e>0.){ float dist=length(uCam-vW); float f=1.-exp(-dist*dist*uFogD*uFogD*.6); col=mix(col,mix(t.rgb*1.15,uFogCol,f),e*.85);} gl_FragColor=vec4(col,1.); }`;
 const VS_SPR = `attribute vec3 aP; attribute vec2 aO; attribute vec4 aC; uniform mat4 uVP; uniform vec3 uR,uU; varying vec4 vC; varying vec2 vO;
 void main(){ vec3 p=aP+uR*aO.x+uU*aO.y; vC=aC; vO=sign(aO); gl_Position=uVP*vec4(p,1.); }`;
 const FS_SPR = `precision mediump float; varying vec4 vC; varying vec2 vO; uniform float uSoft;
@@ -751,6 +752,67 @@ function buildAtlas() {
     for (let i = 0; i < 40; i++) { const x = (i * 97) % w, y = (i * 53) % h; c.fillStyle = 'rgba(70,60,50,' + (.02 + (i % 5) * .007) + ')'; c.beginPath(); c.ellipse(x, y, 30 + (i % 7) * 9, 6 + (i % 3) * 4, 0, 0, TAU); c.fill(); }
     c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(0, 0, w, 5); c.fillRect(0, h - 5, w, 5);
   });
+  // ---- building facades: 256x256 = 2 floors x 3 bays; lit windows carry alpha .9 (night glow mask, em code 3) ----
+  const winGlass = (c, x, y, w, h, lit, tint) => { const g = c.createLinearGradient(x, y, x + w * .6, y + h); g.addColorStop(0, tint[0]); g.addColorStop(.55, tint[1]); g.addColorStop(1, tint[2]); c.fillStyle = g; c.fillRect(x, y, w, h);
+    c.fillStyle = 'rgba(255,255,255,.22)'; c.beginPath(); c.moveTo(x + w * .15, y); c.lineTo(x + w * .45, y); c.lineTo(x + w * .05, y + h * .7); c.lineTo(x, y + h * .7); c.lineTo(x, y + h * .3); c.fill();
+    if (lit) { const d = c.getImageData(x | 0, y | 0, Math.ceil(w), Math.ceil(h)); for (let k = 3; k < d.data.length; k += 4) d.data[k] = 229; c.putImageData(d, x | 0, y | 0); } };
+  const GL1 = ['#7fa6c4', '#2d4a66', '#1b2c40'], GL2 = ['#9fd0e8', '#3a7aa0', '#1d3d5a'];
+  atlasCell('fac0', 256, 256, (c, w, h) => { // red brick, white frames, stone lintels
+    c.fillStyle = '#9a4c36'; c.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 8) { c.fillStyle = 'rgba(60,25,15,.35)'; c.fillRect(0, y, w, 1.5); for (let x = (y / 8) % 2 ? 0 : 10; x < w; x += 20) c.fillRect(x, y, 1.5, 8); }
+    for (let i = 0; i < 60; i++) { c.fillStyle = 'rgba(' + (i % 2 ? '190,100,70' : '90,40,25') + ',.25)'; c.fillRect((i * 53) % w, (i * 37) % h, 18, 7); }
+    for (let f = 0; f < 2; f++) for (let b = 0; b < 3; b++) { const x = b * 85 + 18, y = f * 128 + 26, ww = 49, hh = 74;
+      c.fillStyle = '#e9e3d6'; c.fillRect(x - 6, y - 6, ww + 12, hh + 12); c.fillStyle = '#cfc6b4'; c.fillRect(x - 10, y - 14, ww + 20, 9); c.fillRect(x - 8, y + hh + 6, ww + 16, 7);
+      winGlass(c, x, y, ww, hh, (f * 3 + b) % 4 === 1, GL1); c.fillStyle = '#e9e3d6'; c.fillRect(x + ww / 2 - 2, y, 4, hh); c.fillRect(x, y + hh * .42, ww, 4); }
+    c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(0, 124, w, 4);
+  });
+  atlasCell('fac1', 256, 256, (c, w, h) => { // concrete office, ribbon windows
+    c.fillStyle = '#cdc8be'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 80; i++) { c.fillStyle = 'rgba(0,0,0,' + (.02 + (i % 4) * .01) + ')'; c.fillRect((i * 71) % w, (i * 29) % h, 30, 2); }
+    for (let f = 0; f < 2; f++) { const y = f * 128 + 30; c.fillStyle = '#8a8f96'; c.fillRect(0, y - 4, w, 74);
+      for (let b = 0; b < 6; b++) winGlass(c, b * 42.7 + 3, y, 37, 66, (b + f * 2) % 5 === 1 || (b + f) % 7 === 3, GL2);
+      c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(0, y + 72, w, 3); c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(0, y + 75, w, 5); }
+    for (let x = 0; x < w; x += 85) { c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(x, 0, 3, h); }
+  });
+  atlasCell('fac2', 256, 256, (c, w, h) => { // glass curtain wall
+    const g = c.createLinearGradient(0, 0, w, h); g.addColorStop(0, '#a8d4ec'); g.addColorStop(.4, '#4f88b0'); g.addColorStop(.7, '#2b5878'); g.addColorStop(1, '#5e9cc2'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+    for (let f = 0; f < 4; f++) for (let b = 0; b < 4; b++) if ((f * 4 + b) % 5 === 2) { const d = c.getImageData(b * 64 + 3, f * 64 + 3, 58, 52); for (let k = 0; k < d.data.length; k += 4) { d.data[k] = d.data[k] * .7 + 60; d.data[k + 1] = d.data[k + 1] * .75 + 40; d.data[k + 2] *= .8; d.data[k + 3] = 229; } c.putImageData(d, b * 64 + 3, f * 64 + 3); }
+    c.fillStyle = 'rgba(255,255,255,.18)'; c.beginPath(); c.moveTo(40, 0); c.lineTo(120, 0); c.lineTo(20, h); c.lineTo(-60, h); c.fill(); c.beginPath(); c.moveTo(170, 0); c.lineTo(200, 0); c.lineTo(120, h); c.lineTo(90, h); c.fill();
+    c.fillStyle = '#26323e'; for (let x = 0; x <= w; x += 64) c.fillRect(x - 2, 0, 4, h); for (let y = 0; y <= h; y += 64) c.fillRect(0, y - 3, w, 6 + ((y / 64) % 2 ? 0 : 6));
+    c.fillStyle = 'rgba(255,255,255,.4)'; for (let x = 0; x <= w; x += 64) c.fillRect(x + 2, 0, 1, h);
+  });
+  atlasCell('fac3', 256, 256, (c, w, h) => { // pastel residential with balconies and AC units
+    c.fillStyle = '#e6c9a0'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 50; i++) { c.fillStyle = 'rgba(120,80,40,' + (.03 + (i % 3) * .02) + ')'; c.fillRect((i * 61) % w, (i * 43) % h, 3, 26); }
+    for (let f = 0; f < 2; f++) for (let b = 0; b < 3; b++) { const x = b * 85 + 16, y = f * 128 + 22, ww = 53, hh = 70;
+      c.fillStyle = '#6a4a32'; c.fillRect(x - 12, y, 10, hh); c.fillRect(x + ww + 2, y, 10, hh); c.fillStyle = 'rgba(255,255,255,.2)'; for (let k = 0; k < hh; k += 8) { c.fillRect(x - 12, y + k, 10, 2); c.fillRect(x + ww + 2, y + k, 10, 2); }
+      winGlass(c, x, y, ww, hh, (f + b) % 3 === 0, GL1); c.fillStyle = '#f4ead8'; c.fillRect(x + ww / 2 - 2, y, 4, hh);
+      if (b === 1) { c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(x - 16, y + hh + 8, ww + 32, 6); c.fillStyle = '#f2ece2'; c.fillRect(x - 16, y + hh - 2, ww + 32, 8); c.strokeStyle = '#3a3a3a'; c.lineWidth = 2.5; c.strokeRect(x - 14, y + hh - 26, ww + 28, 24); for (let k = x - 14; k < x + ww + 14; k += 7) { c.beginPath(); c.moveTo(k, y + hh - 26); c.lineTo(k, y + hh - 2); c.stroke(); } }
+      else if ((f + b) % 2) { c.fillStyle = '#d8dcdf'; c.fillRect(x + 8, y + hh + 2, 34, 20); c.fillStyle = '#9aa0a6'; for (let k = 0; k < 5; k++) c.fillRect(x + 11, y + hh + 5 + k * 3.5, 22, 1.5); c.beginPath(); c.arc(x + 37, y + hh + 12, 5, 0, TAU); c.fill(); } }
+    c.fillStyle = '#d4b588'; c.fillRect(0, 120, w, 8); c.fillStyle = 'rgba(0,0,0,.15)'; c.fillRect(0, 128, w, 3);
+  });
+  atlasCell('shopf', 256, 128, (c, w, h) => { // ground-floor storefront
+    c.fillStyle = '#3b3f46'; c.fillRect(0, 0, w, h); c.fillStyle = '#5a5f68'; c.fillRect(0, 0, w, 10);
+    const g = c.createLinearGradient(0, 14, 0, h); g.addColorStop(0, '#ffe2a8'); g.addColorStop(1, '#c98a4a'); c.fillStyle = g; c.fillRect(8, 16, 150, h - 22); c.fillRect(196, 16, 52, h - 22);
+    for (let i = 0; i < 6; i++) { c.fillStyle = ['#c0392b', '#2e86c1', '#27ae60', '#f1c40f', '#8e44ad', '#e67e22'][i]; c.fillRect(16 + i * 23, 62 + (i % 2) * 6, 16, 30 - (i % 2) * 6); }
+    c.fillStyle = '#7a5a3a'; c.fillRect(10, 94, 146, 6); c.fillRect(10, 56, 146, 4);
+    c.fillStyle = '#20242a'; c.fillRect(164, 16, 28, h - 16); c.fillStyle = '#c8ccd0'; c.fillRect(186, 64, 3, 14);
+    c.fillStyle = 'rgba(255,255,255,.25)'; c.beginPath(); c.moveTo(30, 16); c.lineTo(70, 16); c.lineTo(30, h - 6); c.lineTo(8, h - 6); c.lineTo(8, 60); c.fill();
+    c.fillStyle = '#2a2d33'; for (const x of [8, 82, 156, 196, 248]) c.fillRect(x - 3, 14, 6, h - 14);
+    const d = c.getImageData(8, 16, 150, h - 22); for (let k = 3; k < d.data.length; k += 4) d.data[k] = 229; c.putImageData(d, 8, 16);
+  });
+  atlasCell('corr', 256, 256, (c, w, h) => { // corrugated warehouse cladding
+    const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#d9dde2'); g.addColorStop(1, '#a9afb7'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+    for (let x = 0; x < w; x += 12) { const gg = c.createLinearGradient(x, 0, x + 12, 0); gg.addColorStop(0, 'rgba(0,0,0,.16)'); gg.addColorStop(.5, 'rgba(255,255,255,.28)'); gg.addColorStop(1, 'rgba(0,0,0,.16)'); c.fillStyle = gg; c.fillRect(x, 0, 12, h); }
+    c.fillStyle = '#1f5fa8'; c.fillRect(0, h - 40, w, 40); c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(0, h - 40, w, 3);
+    for (let i = 0; i < 18; i++) { c.fillStyle = 'rgba(110,80,50,.06)'; c.fillRect((i * 47) % w, h - 60, 6, 40 + (i % 4) * 8); }
+  });
+  ['#b8402e', '#1f63b0', '#2f8a4a', '#d08a1a'].forEach((col, i) => atlasCell('cont' + i, 256, 64, (c, w, h) => { // shipping container side
+    c.fillStyle = col; c.fillRect(0, 0, w, h);
+    for (let x = 4; x < w; x += 9) { c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(x, 3, 3, h - 6); c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(x + 3, 3, 2, h - 6); }
+    c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(0, 0, w, 3); c.fillRect(0, h - 3, w, 3); c.fillRect(0, 0, 3, h); c.fillRect(w - 3, 0, 3, h);
+    c.fillStyle = 'rgba(255,255,255,.85)'; c.font = '900 22px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(['ZAIB LINE', 'BAYU', 'KOTA', 'SAHRA'][i], w / 2, h / 2 + 1);
+  }));
   atlasCell('window', 64, 64, (c) => { c.fillStyle = '#9ad'; c.fillRect(0, 0, 64, 64); });
   return cv;
 }
@@ -1383,7 +1445,7 @@ function buildScenery(w, seed) {
     const kind = B.trees[(r() * B.trees.length) | 0]; propTree(bucketOf(x, z).mb, kind, x, y - .1, z, .8 + r() * .7, r);
   }
   // per-point roadside items
-  const sideR = w.side;
+  const sideR = w.side; const placedB = new Set();
   for (let i = 20; i < w.n - 20; i++) {
     const kd = P.kind[i], hw = w.HW[i]; const fx = Math.sin(P.h[i]), fz = Math.cos(P.h[i]), rx = -fz, rz = fx;
     // city buildings
@@ -1392,13 +1454,24 @@ function buildScenery(w, seed) {
         if (r() < .15) continue; const bio = BIOME_KEYS[P.biome[i]]; const metro = bio === 'city';
         const bw = 10 + r() * 10, bd = 10 + r() * 12, bh = metro ? 8 + r() * r() * 46 : 5 + r() * 10; const off = hw + 4.5 + bd / 2;
         const x = P.x[i] + rx * s * off, z = P.z[i] + rz * s * off; if (terrainD(x, z) < off - 1) continue; if (inPad(x, z, 4)) continue;
-        building(bucketOf(x, z), x, P.y[i] + .1, z, P.h[i] + (s > 0 ? PI / 2 : -PI / 2), bw, bd, bh, r, metro);
+        building(bucketOf(x, z), x, P.y[i] + .1, z, P.h[i] + (s > 0 ? PI / 2 : -PI / 2), bw, bd, bh, r, metro); placedB.add(i * 2 + (s > 0 ? 1 : 0));
       }
     }
     // billboards
     if ((kd === KIND.highway || kd === KIND.rural) && i % 90 === 45 && !nearEvent(i, 60)) { const s = r() < .5 ? 1 : -1; const off = hw + 9; const x = P.x[i] + rx * s * off, z = P.z[i] + rz * s * off; if (terrainD(x, z) > off - 2) { const y = terrainH(x, z); const b = bucketOf(x, z); b.mb.box(x, y + 3, z, .3, 6, .3, C.grey, .3); const yaw = P.h[i]; b.mb.push().tr(x, y + 7, z).ry(yaw + (s > 0 ? -.35 : .35)); b.mb.box(0, 0, -.12, 8.4, 4.4, .2, C.dark, .2); b.tb.push(); b.mb.pop(); b.tb.pop(); b.tb.push().tr(x, y + 7, z).ry(yaw + (s > 0 ? -.35 : .35)); b.tb.tquad([4, -2.1, -.25], [-4, -2.1, -.25], [-4, 2.1, -.25], [4, 2.1, -.25], ATL.cells['bb' + ((r() * 6) | 0)], 2); b.tb.pop(); w.glows.push([x, y + 9.6, z, .6]); } }
     // power poles along rural
     if (kd === KIND.rural && i % 12 === 0) { const s = -sideR; const off = hw + 7; const x = P.x[i] + rx * s * off, z = P.z[i] + rz * s * off; if (terrainD(x, z) > off - 2 && !inPad(x, z, 3)) { const y = terrainH(x, z); const b = bucketOf(x, z).mb; b.cyl('y', x, y + 4, z, .13, 8, 5, C.wood, .05, 0, false); b.push().tr(x, y + 7.6, z).ry(P.h[i]); b.box(0, 0, 0, 2.2, .12, .12, C.wood, .05); b.pop(); } }
+  }
+  // infill: city lots the original pass left empty get a building too (own hashed RNG, so the world RNG stream is untouched)
+  for (let i = 20; i < w.n - 20; i += 6) {
+    if (P.kind[i] !== KIND.city) continue; const hw = w.HW[i]; const fx = Math.sin(P.h[i]), fz = Math.cos(P.h[i]), rx = -fz, rz = fx; const ev = nearEvent(i, 22);
+    for (const s of [-1, 1]) { if (placedB.has(i * 2 + (s > 0 ? 1 : 0))) continue;
+      let hs = ((i * 2654435761) ^ (s > 0 ? 0x9e3779b9 : 0x7f4a7c15) ^ (w.seed * 40503)) >>> 0; hs = hs % 2147483646 + 1; const hr = () => { hs = (hs * 16807) % 2147483647; return hs / 2147483647; };
+      if (hr() < .12) continue; const bio = BIOME_KEYS[P.biome[i]]; const metro = bio === 'city';
+      const bw = 10 + hr() * 8, bd = 10 + hr() * 10, bh = metro ? 8 + hr() * hr() * 40 : 6 + hr() * 9; const off = hw + (ev ? 9 : 5) + bd / 2;
+      const x = P.x[i] + rx * s * off, z = P.z[i] + rz * s * off; if (terrainD(x, z) < off - 1) continue; if (inPad(x, z, 6)) continue;
+      building(bucketOf(x, z), x, P.y[i] + .1, z, P.h[i] + (s > 0 ? PI / 2 : -PI / 2), bw, bd, bh, hr, metro);
+    }
   }
   // speed limit + warning signs at limit changes
   let last = 0; for (let i = 16; i < w.n - 10; i++) { const L = w.LIM[i]; if (L !== last && ATL.cells['lim' + L]) { addSign(w, i, 'lim' + L, 1.1, 1.1, 2.2); last = L; } if (Math.abs(P.k[i]) > 1 / 40 && i % 5 === 0) addSign(w, i, 'chev', .8, .8, 1.4, P.k[i] > 0 ? 1 : -1, true); }
@@ -1415,21 +1488,45 @@ function addSign(w, i, cell, sw, sh, hgt, sideOverride, outer) {
   b.mb.push().tr(x, y + hgt + sh / 2, z).ry(yaw); b.mb.box(0, 0, -.02, sw, sh, .04, C.grey, .3); b.mb.pop();
 }
 function building(bk, x, y, z, yaw, bw, bd, bh, r, metro) {
-  const b = bk.mb; const pal = ['#d8cfc0', '#b8c4cc', '#c8a888', '#e0d8c8', '#8a9aa8', '#c87a5a', '#a8b890', '#e8e0d0', '#7a8a9a', '#d0b070'];
-  const col = hex(pal[(r() * pal.length) | 0]); b.push().tr(x, y, z).ry(yaw);
-  b.box(0, bh / 2, 0, bw, bh, bd, col, metro && bh > 20 ? .35 : .08);
-  // windows (front face = +z local faces road)
-  const fl = Math.max(1, Math.floor(bh / 3.4)); const cols = Math.max(2, Math.floor(bw / 2.6)); const glassC = metro && bh > 20 ? hex('#2a4a6a') : hex('#3a4a5a');
-  for (let f = 0; f < fl; f++) for (let c = 0; c < cols; c++) { const wx = -bw / 2 + (c + .5) * bw / cols, wy = 1.8 + f * 3.4; if (wy > bh - 1) continue; const lit = r() < .55; const wc = lit ? hex('#ffd890') : glassC; b.quad([wx - .6, wy - .8, bd / 2 + .02], [wx + .6, wy - .8, bd / 2 + .02], [wx + .6, wy + .8, bd / 2 + .02], [wx - .6, wy + .8, bd / 2 + .02], lit ? wc : glassC, .7, lit ? 2 : 0); }
-  // side windows
-  for (const s of [1, -1]) for (let f = 0; f < fl; f++) { const wy = 1.8 + f * 3.4; if (wy > bh - 1) continue; const n = Math.max(1, Math.floor(bd / 3)); for (let c = 0; c < n; c++) { const wz = -bd / 2 + (c + .5) * bd / n; const lit = r() < .4; const xo = s * (bw / 2 + .02); if (s > 0) b.quad([xo, wy - .8, wz + .5], [xo, wy - .8, wz - .5], [xo, wy + .8, wz - .5], [xo, wy + .8, wz + .5], lit ? hex('#ffd890') : glassC, .7, lit ? 2 : 0); else b.quad([xo, wy - .8, wz - .5], [xo, wy - .8, wz + .5], [xo, wy + .8, wz + .5], [xo, wy + .8, wz - .5], lit ? hex('#ffd890') : glassC, .7, lit ? 2 : 0); } }
-  // roof stuff
-  b.box(0, bh + .3, 0, bw - .4, .6, bd - .4, mixc(col, [0, 0, 0], .25), .05, 0, 'b');
-  if (r() < .6) b.box((r() - .5) * bw * .5, bh + 1.1, (r() - .5) * bd * .5, 2, 1.4, 2, C.lgrey, .3);
-  if (r() < .4) b.cyl('y', (r() - .5) * bw * .5, bh + 1.8, (r() - .5) * bd * .5, 1, 2.2, 8, hex('#8a6a4a'), .1);
-  // shop front awning + sign
-  if (bh < 30 || r() < .5) { const ac = hex(['#d02a2a', '#2a6ad0', '#2a9a4a', '#e0a020'][(r() * 4) | 0]); b.tbox(0, 3.3, bd / 2 + .7, bw - 1, .1, 1.4, bw - 1, .6, 0, -.4, ac, .2); bk.tb.push().tr(x, y, z).ry(yaw); bk.tb.tquad([-bw * .3, 3.6, bd / 2 + .05], [bw * .3, 3.6, bd / 2 + .05], [bw * .3, 4.6, bd / 2 + .05], [-bw * .3, 4.6, bd / 2 + .05], ATL.cells['shop' + ((r() * 6) | 0)], 2); bk.tb.pop(); }
-  b.pop();
+  const b = bk.mb, tb = bk.tb;
+  // replay the exact world-RNG consumption of the original generator so the rest of the world stays identical
+  let acc = r(); { const fl = Math.max(1, Math.floor(bh / 3.4)), cols = Math.max(2, Math.floor(bw / 2.6));
+    for (let f = 0; f < fl; f++) for (let c = 0; c < cols; c++) { if (1.8 + f * 3.4 > bh - 1) continue; acc += r(); }
+    for (const s of [1, -1]) for (let f = 0; f < fl; f++) { if (1.8 + f * 3.4 > bh - 1) continue; const n = Math.max(1, Math.floor(bd / 3)); for (let c = 0; c < n; c++) acc += r(); }
+    if (r() < .6) { acc += r() + r(); } if (r() < .4) { acc += r() + r(); } if (bh < 30 || r() < .5) { acc += r() + r(); } }
+  let ls = (Math.floor(acc * 1e6) % 2147483646) + 1; r = () => { ls = (ls * 16807) % 2147483647; return ls / 2147483647; };
+  // facade style: tall metro -> glass/office, low -> brick/residential
+  const tall = metro && bh > 20; const st = tall ? (r() < .55 ? 2 : 1) : [0, 3, 0, 3, 1][(r() * 5) | 0];
+  const base = hex(['#9a4c36', '#c9c4ba', '#5d7f99', '#e3c49c'][st]); const cell = ATL.cells['fac' + st];
+  b.push().tr(x, y, z).ry(yaw); tb.push().tr(x, y, z).ry(yaw);
+  b.box(0, bh / 2, 0, bw, bh, bd, base, tall ? .35 : .08);
+  // plinth band + corner pilasters
+  b.box(0, .6, 0, bw + .12, 1.2, bd + .12, mixc(base, [0, 0, 0], .35), .1);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.box(sx * (bw / 2 - .2), bh / 2, sz * (bd / 2 - .2), .5, bh, .5, mixc(base, [1, 1, 1], .12), .1);
+  // facade quads per face: lit-window night mask uses em code 3
+  const CH = 6.8, y0 = 3.4;
+  const face = (W, put) => { const nx = Math.max(1, Math.round(W / 7.6)), cw = (W - .6) / nx; for (let fy = y0; fy < bh - 1.2; fy += CH) { const hh = Math.min(CH, bh - .8 - fy); if (hh < 3) break; const vfrac = hh / CH; for (let i = 0; i < nx; i++) { const a = -W / 2 + .3 + i * cw; let uv = [cell[0], cell[1] + (cell[3] - cell[1]) * (1 - vfrac), cell[2], cell[3]]; if (st !== 2 && r() < .5) uv = [uv[2], uv[1], uv[0], uv[3]]; put(a, a + cw, fy, fy + hh, uv); } } };
+  const e = .03;
+  face(bw, (a0, a1, f0, f1, uv) => tb.tquad([a0, f0, bd / 2 + e], [a1, f0, bd / 2 + e], [a1, f1, bd / 2 + e], [a0, f1, bd / 2 + e], uv, 3));
+  face(bw, (a0, a1, f0, f1, uv) => tb.tquad([-a0, f0, -bd / 2 - e], [-a1, f0, -bd / 2 - e], [-a1, f1, -bd / 2 - e], [-a0, f1, -bd / 2 - e], uv, 3));
+  face(bd, (a0, a1, f0, f1, uv) => tb.tquad([bw / 2 + e, f0, -a0], [bw / 2 + e, f0, -a1], [bw / 2 + e, f1, -a1], [bw / 2 + e, f1, -a0], uv, 3));
+  face(bd, (a0, a1, f0, f1, uv) => tb.tquad([-bw / 2 - e, f0, a0], [-bw / 2 - e, f0, a1], [-bw / 2 - e, f1, a1], [-bw / 2 - e, f1, a0], uv, 3));
+  // ground floor: storefront on the road side, plain plinth elsewhere
+  const sf = ATL.cells.shopf; const ns = Math.max(1, Math.round(bw / 8)), sw = (bw - .8) / ns;
+  for (let i = 0; i < ns; i++) { const a = -bw / 2 + .4 + i * sw; tb.tquad([a, 1.2, bd / 2 + e], [a + sw, 1.2, bd / 2 + e], [a + sw, 3.2, bd / 2 + e], [a, 3.2, bd / 2 + e], sf, 3); }
+  // cornice ledges between ground floor and top
+  b.box(0, 3.35, 0, bw + .3, .25, bd + .3, mixc(base, [1, 1, 1], .25), .15);
+  b.box(0, bh - .15, 0, bw + .4, .3, bd + .4, mixc(base, [1, 1, 1], .2), .15);
+  // roof: parapet, plant, tanks, antenna
+  const pc = mixc(base, [0, 0, 0], .2);
+  b.box(0, bh + .02, 0, bw - .3, .04, bd - .3, hex('#5a5d62'), .05);
+  b.box(0, bh + .45, bd / 2 - .1, bw, .9, .2, pc, .1); b.box(0, bh + .45, -bd / 2 + .1, bw, .9, .2, pc, .1); b.box(bw / 2 - .1, bh + .45, 0, .2, .9, bd, pc, .1); b.box(-bw / 2 + .1, bh + .45, 0, .2, .9, bd, pc, .1);
+  const nAc = 1 + ((r() * 3) | 0); for (let k = 0; k < nAc; k++) { const ax = (r() - .5) * (bw - 4), az = (r() - .5) * (bd - 4); b.box(ax, bh + .7, az, 1.8, 1.4, 1.4, C.lgrey, .4); b.box(ax, bh + 1.45, az, 1.2, .1, 1.2, hex('#5a6068'), .3); }
+  if (r() < .5) { const tx = (r() - .5) * bw * .4, tz = (r() - .5) * bd * .4; b.cyl('y', tx, bh + 2.2, tz, 1.1, 2.4, 10, hex('#8a6a4a'), .1); for (const sx of [-.7, .7]) b.box(tx + sx, bh + .5, tz, .15, 1, .15, C.dark, .2); }
+  if (tall && r() < .6) { b.box(bw * .2, bh + 1.6, -bd * .2, 3.5, 3.2, 3.5, mixc(base, [0, 0, 0], .1), .2); b.cyl('y', bw * .2, bh + 6, -bd * .2, .08, 6, 4, C.grey, .5, 0, false); }
+  // shop awning + sign
+  if (bh < 30 || r() < .5) { const ac = hex(['#d02a2a', '#2a6ad0', '#2a9a4a', '#e0a020'][(r() * 4) | 0]); b.tbox(0, 3.15, bd / 2 + .7, bw - 1, .1, 1.4, bw - 1, .6, 0, -.4, ac, .2); tb.tquad([-bw * .3, 3.6, bd / 2 + .08], [bw * .3, 3.6, bd / 2 + .08], [bw * .3, 4.6, bd / 2 + .08], [-bw * .3, 4.6, bd / 2 + .08], ATL.cells['shop' + ((r() * 6) | 0)], 2); }
+  b.pop(); tb.pop();
 }
 // ---- event meshes (static parts) ----
 function buildEventMeshes(w) {
@@ -1494,7 +1591,9 @@ function yardMeshes(w, Y) {
     mb.push().tr(wc[0], y, wc[1]).ry(yawW);
     // local: z = u direction (toward yard), x = -v? local +x = (cos yaw, -sin yaw) ; we set ry(yawW) so local +z -> (rx,rz); local +x -> (rz, -rx)?? = -f  => local x = -v
     mb.box(0, 5, 0, v1 - v0 + 10, 10, 18, hex('#c8ccd0'), .2); mb.box(0, 10.2, 0, v1 - v0 + 10.4, .4, 18.4, hex('#7a8088'), .2);
-    for (let k = 0; k < 8; k++) mb.box(0, 2 + k * 1.1, 9.02, v1 - v0 + 10, .06, .02, hex('#a8acb0'), .2);
+    { const WW = v1 - v0 + 10, nC = Math.max(1, Math.round(WW / 8)), cw = WW / nC, cc = ATL.cells.corr; for (let k = 0; k < nC; k++) { const a = -WW / 2 + k * cw; tb.push().tr(wc[0], y, wc[1]).ry(yawW); tb.tquad([a, 0, 9.012], [a + cw, 0, 9.012], [a + cw, 10, 9.012], [a, 10, 9.012], cc, 0); tb.tquad([a + cw, 0, -9.012], [a, 0, -9.012], [a, 10, -9.012], [a + cw, 10, -9.012], cc, 0); tb.pop(); } }
+    for (const sx of [-1, 1]) mb.box(sx * ((v1 - v0 + 10) / 2 + .15), 5, 0, .3, 10.2, 18.3, hex('#1f5fa8'), .3);
+    mb.box(0, 10.6, 0, v1 - v0 + 9, .5, 17, hex('#9aa0a8'), .3); for (let k = -2; k <= 2; k++) mb.box(k * (v1 - v0) / 5, 11, 0, 1.6, .5, 1.6, C.lgrey, .4);
     for (const d of Y.docks) { const lx = (d.v - (v0 + v1) / 2); mb.box(lx, 2.2, 9.03, 3.2, 3.6, .04, hex('#3a3e44'), .3); mb.box(lx, 1.1, 9.15, 3.6, .3, .3, hex('#202020'), .2); for (const s of [1, -1]) mb.box(lx + s * 1.8, .7, 9.3, .3, .5, .6, C.yellow, .3); mb.box(lx, 4.6, 9.2, .5, .2, .3, hex('#fff2c8'), .5, 2); const g = Y.toW(Y.wallU - .3, d.v); w.glows.push([g[0], y + 4.5, g[1], .7]); mb.box(lx, 4.25, 9.3, .4, .25, .1, d.k === Y.target ? hex('#30ff60') : hex('#ff3020'), .5, 1); }
     mb.pop();
     tb.push().tr(wc[0], y, wc[1]).ry(yawW); for (const d of Y.docks) { const lx = (d.v - (v0 + v1) / 2); tb.tquad([lx - .4, 4.9, 9.05], [lx + .4, 4.9, 9.05], [lx + .4, 5.7, 9.05], [lx - .4, 5.7, 9.05], ATL.cells['dock' + (d.k + 1)], 2); } tb.tquad([-8, 7, 9.06], [8, 7, 9.06], [8, 9.4, 9.06], [-8, 9.4, 9.06], ATL.cells['liv' + (w.seed % 6)], 0); tb.pop();
@@ -1502,6 +1601,16 @@ function yardMeshes(w, Y) {
     for (const d of Y.docks) for (const s of [-1, 1]) { const a = L(Y.wallU, d.v + s * 2.2), c = L(Y.wallU + 18, d.v + s * 2.2); const nx = c[0] - a[0], nz = c[1] - a[1]; const l = Math.hypot(nx, nz); const px = -nz / l * .08, pz = nx / l * .08; mb.quad([a[0] - px, y + .07, a[1] - pz], [a[0] + px, y + .07, a[1] + pz], [c[0] + px, y + .07, c[1] + pz], [c[0] - px, y + .07, c[1] - pz], d.k === Y.target ? hex('#30e060') : hex('#e8d020'), .2); }
     // parked trailers
     for (const d of Y.parked) { const p = L(d.u + 13.6 / 2 + .3, d.v); mb.push().tr(p[0], y, p[1]).ry(yawW); mb.box(0, 2.6, 0, 2.5, 2.8, 13.6, hex(['#e8e8e8', '#d8c040', '#3a6ad0', '#c03030'][d.k % 4]), .3); mb.box(0, .9, 0, 1.2, .4, 13, C.dark, .2); for (const z of [-5.2, -3.9]) for (const s of [1, -1]) mb.cyl('x', s * 1.0, .5, z, .5, .5, 10, C.rubber, .05); for (const s of [1, -1]) mb.box(s * .8, .6, 4, .12, 1.0, .12, C.grey, .2); mb.pop(); }
+    // container stacks + light poles outside the far fence (decor only, outside the drivable pad)
+    { let cs = (w.seed * 7 + (Y.isEnd ? 3 : 0)) | 0; const rr = () => { cs = (cs * 16807 + 11) % 2147483647; return cs / 2147483647; };
+      const ev = Y.isEnd ? Y.v0 - 8 : Y.v1 + 8;
+      for (let u = Y.u0 + 6; u < Y.u1 - 6; u += 3.2) { if (Math.abs(u) < 18 || rr() < .2) continue; const p = L(u, ev + (rr() - .5)); if (terrainD(p[0], p[1]) < 14) continue; const gy = Math.min(y, terrainH(p[0], p[1])); const cb = bucketOf(p[0], p[1]); const lv = 1 + (rr() < .5 ? 1 : 0) + (rr() < .25 ? 1 : 0);
+        for (let k = 0; k < lv; k++) { const ci = (rr() * 4) | 0, col = hex(['#b8402e', '#1f63b0', '#2f8a4a', '#d08a1a'][ci]); cb.mb.push().tr(p[0], gy, p[1]).ry(yawW + Math.PI / 2 + Math.PI / 2); cb.mb.box(0, 1.3 + k * 2.6, 0, 2.44, 2.56, 12.2, col, .2); cb.mb.pop();
+          cb.tb.push().tr(p[0], gy, p[1]).ry(yawW + Math.PI); const cc = ATL.cells['cont' + ci], yb = .05 + k * 2.6, yt = yb + 2.46; cb.tb.tquad([1.23, yb, 6.05], [1.23, yb, -6.05], [1.23, yt, -6.05], [1.23, yt, 6.05], cc, 0); cb.tb.tquad([-1.23, yb, -6.05], [-1.23, yb, 6.05], [-1.23, yt, 6.05], [-1.23, yt, -6.05], cc, 0); cb.tb.pop(); } }
+      for (let v = Y.v0 + 4; v < Y.v1 - 4; v += 3.2) { if (rr() < .25) continue; const p = L(Y.u1 + 8 + rr() * 1.5, v); const gy = Math.min(y, terrainH(p[0], p[1])) ; const cb = bucketOf(p[0], p[1]); const lv = 1 + (rr() < .55 ? 1 : 0) + (rr() < .2 ? 1 : 0);
+        for (let k = 0; k < lv; k++) { const ci = (rr() * 4) | 0, col = hex(['#b8402e', '#1f63b0', '#2f8a4a', '#d08a1a'][ci]); cb.mb.push().tr(p[0], gy, p[1]).ry(yawW + Math.PI / 2 + (rr() - .5) * .06); cb.mb.box(0, 1.3 + k * 2.6, 0, 2.44, 2.56, 12.2, col, .2); cb.mb.pop();
+          cb.tb.push().tr(p[0], gy, p[1]).ry(yawW + Math.PI / 2); const cc = ATL.cells['cont' + ci], yb = .05 + k * 2.6, yt = yb + 2.46; cb.tb.tquad([1.23, yb, 6.05], [1.23, yb, -6.05], [1.23, yt, -6.05], [1.23, yt, 6.05], cc, 0); cb.tb.tquad([-1.23, yb, -6.05], [-1.23, yb, 6.05], [-1.23, yt, 6.05], [-1.23, yt, -6.05], cc, 0); cb.tb.pop(); } }
+    }
     // office
     const oc = L(Y.u1 - 8, Y.isEnd ? Y.v1 - 10 : Y.v0 + 10); mb.box(oc[0], y + 2, oc[1], 9, 4, 9, hex('#e8e0c8'), .1); mb.box(oc[0], y + 4.2, oc[1], 9.4, .4, 9.4, hex('#b04020'), .1);
   } else {
@@ -1515,7 +1624,15 @@ function yardMeshes(w, Y) {
   if (Y.isEnd) { fence(Y.u1 + 1, Y.v0, Y.u1 + 1, Y.v1 + 1); fence(Y.u0 - 1, Y.v1 + 1, Y.u1 + 1, Y.v1 + 1); fence(Y.u1 + 1, Y.v0 - 1, 7, Y.v0 - 1); fence(-7, Y.v0 - 1, Y.u0, Y.v0 - 1); }
   else { fence(Y.u1 + 1, Y.v0 - 1, Y.u1 + 1, Y.v1); fence(Y.u0, Y.v0 - 1, Y.u1 + 1, Y.v0 - 1); fence(Y.u1 + 1, Y.v1 + 1, 7, Y.v1 + 1); fence(-7, Y.v1 + 1, Y.u0, Y.v1 + 1); }
   // floodlights
-  for (const [u, v] of [[Y.u1, Y.v0 + 5], [Y.u1, Y.v1 - 5], [0, (Y.v0 + Y.v1) / 2]]) { const p = L(u, v); const fb = bucketOf(p[0], p[1]).mb; fb.cyl('y', p[0], y + 6, p[1], .15, 12, 6, C.grey, .4, 0, false); fb.box(p[0], y + 12, p[1], 1.4, .4, .6, hex('#fff6d8'), .5, 2); w.glows.push([p[0], y + 11.8, p[1], 2.2]); }
+  // concrete slab joints, walkway hatching and oil stains on the yard pad
+  { const jc = hex('#3d4045'), lineQ = (ua, va, ub, vb, wd, col) => { const a = L(ua, va), c = L(ub, vb); const nx = c[0] - a[0], nz = c[1] - a[1], l = Math.hypot(nx, nz) || 1, px = -nz / l * wd, pz = nx / l * wd; const qb = bucketOf((a[0] + c[0]) / 2, (a[1] + c[1]) / 2).mb; qb.quad([a[0] - px, y + .055, a[1] - pz], [a[0] + px, y + .055, a[1] + pz], [c[0] + px, y + .055, c[1] + pz], [c[0] - px, y + .055, c[1] - pz], col, .1); };
+    for (let u = Math.ceil(Y.u0 / 7) * 7; u < Y.u1; u += 7) lineQ(u, Y.v0, u, Y.v1, .05, jc);
+    for (let v = Math.ceil(Y.v0 / 7) * 7; v < Y.v1; v += 7) lineQ(Y.u0, v, Y.u1, v, .05, jc);
+    if (!Y.park) { const wu = Y.wallU + 19.5; lineQ(wu, Y.v0 + 2, wu, Y.v1 - 2, .12, C.yellow); lineQ(wu + 2.2, Y.v0 + 2, wu + 2.2, Y.v1 - 2, .12, C.yellow); }
+    let os = (w.seed * 13 + 5) | 0; const orr = () => { os = (os * 16807 + 3) % 2147483647; return os / 2147483647; };
+    for (let k = 0; k < 14; k++) { const u = lerp(Y.u0 + 3, Y.u1 - 3, orr()), v = lerp(Y.v0 + 3, Y.v1 - 3, orr()), rr2 = .6 + orr() * 1.4; const sc2 = mixc(hex('#2a2c30'), hex('#4a4d52'), orr()); const c0 = L(u, v), ob = bucketOf(c0[0], c0[1]).mb; for (let q = 0; q < 6; q++) { const a0 = q / 6 * TAU, a1 = (q + 1) / 6 * TAU; ob.tri([c0[0], y + .058, c0[1]], [c0[0] + Math.cos(a1) * rr2 * 1.3, y + .058, c0[1] + Math.sin(a1) * rr2], [c0[0] + Math.cos(a0) * rr2 * 1.3, y + .058, c0[1] + Math.sin(a0) * rr2], sc2, .4); } }
+  }
+  for (const [u, v] of [[Y.u1, Y.v0 + 5], [Y.u1, Y.v1 - 5]]) { const p = L(u, v); const fb = bucketOf(p[0], p[1]).mb; fb.cyl('y', p[0], y + 6, p[1], .15, 12, 6, C.grey, .4, 0, false); fb.box(p[0], y + 12, p[1], 1.4, .4, .6, hex('#fff6d8'), .5, 2); w.glows.push([p[0], y + 11.8, p[1], 2.2]); }
   if (!Y.park) { const sp = L(10, Y.isEnd ? Y.v0 - 6 : Y.v1 + 6); const sb = bucketOf(sp[0], sp[1]); sb.mb.cyl('y', sp[0], y + 2, sp[1], .1, 4, 6, C.grey, .4, 0, false); sb.tb.push().tr(sp[0], y + 4.4, sp[1]).ry(Y.h + (Y.isEnd ? PI : 0)); sb.tb.tquad([1.6, -.5, -.06], [-1.6, -.5, -.06], [-1.6, .5, -.06], [1.6, .5, -.06], ATL.cells.depot, 2); sb.tb.tquad([-1.6, -.5, .06], [1.6, -.5, .06], [1.6, .5, .06], [-1.6, .5, .06], ATL.cells.depot, 2); sb.tb.pop(); }
 }
 function finalizeBuckets(w) { for (const b of w.buckets.values()) { b.mesh = b.mb.build(); b.tmesh = b.tb.build(); b.mb = b.tb = null; const all = b.mesh.concat(b.tmesh); b.cy = all.length ? all[0].cy : 0; let r = 0; for (const m of all) r = Math.max(r, Math.hypot(m.cx - b.cx, m.cy - b.cy, m.cz - b.cz) + m.r); b.r = r || BUCKET; } }
