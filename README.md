@@ -29,6 +29,6 @@ A premium 3D truck-driving career game for mobile browsers. It is written in han
 - **Pedals:** GAS and BRAKE. The D/R button switches between drive and reverse.
 - **Gearbox:** automatic or manual (manual adds + and − buttons).
 - **Other buttons:** horn, indicators, lights, hazards, handbrake (P), cruise control (CC), radio and mirror. Use 🎥 to cycle between chase and cab cameras.
-- **Keyboard:** arrows/WASD to drive, Space for the handbrake, H for the horn, C for the camera, R to reverse, Q/E for the indicators, L for the lights.
+- **Keyboard:** arrows/WASD to drive, Space for the handbrake, H for the horn, C for the camera, R to reverse, Q/E for the indicators, L for the lights, K for cruise, Z/X to shift down/up, and P or Esc to pause.
 
 Game by Zaib · [More games](https://zaibgames.com/) · [Privacy](https://zaibgames.com/privacy/)
