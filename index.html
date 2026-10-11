@@ -249,6 +249,15 @@ body:not(.ads-on) .adslot{display:none!important}
  <div class="adslot" aria-hidden="true"></div>
 </div>
 <script>
+/* GA4 custom events (Games by Zaib). Safe: never throws, light (no per-frame calls, dedupe + per-page cap). */
+var ZT_N = 0, ZT_K = '', ZT_KT = 0, ZT_T = 0, ZT_S = 0, ZT_H = 0;
+function zt(n, p) { try { var k = n + JSON.stringify(p || 0), t = Date.now(); if (ZT_N > 150 || (k === ZT_K && t - ZT_KT < 500)) return; ZT_N++; ZT_K = k; ZT_KT = t; window.gtag && gtag('event', n, Object.assign({ game_id: 'haulway-heroes' }, p)); } catch (e) {} }
+function ztPlay(on) { try { var t = Date.now(); if (ZT_S) { ZT_T += (t - ZT_S) / 1e3; ZT_S = 0; } if (on) ZT_S = t; } catch (e) {} }
+function ztPing(r) { try { ztPlay(false); if (ZT_T >= 1) zt('play_time', { play_time: Math.round(ZT_T), reason: r }); ZT_T = 0; } catch (e) {} }
+try {
+  document.addEventListener('visibilitychange', function () { if (document.hidden) { ZT_H = !!ZT_S; ztPing('page_hide'); } else if (ZT_H) { ZT_H = 0; ztPlay(true); } });
+  document.addEventListener('click', function (e) { try { var a = e.target && e.target.closest && e.target.closest('a[href]'); if (!a) return; var u = new URL(a.href, location.href); if (!/^https?:$/.test(u.protocol)) return; if (u.host === location.host || /(^|\.)zaibgames\.com$/.test(u.host)) { if (u.pathname.indexOf('/haulway-heroes/') !== 0) zt('more_games_click', { link_url: u.href }); } else zt('outbound_click', { link_url: u.href, link_domain: u.host, outbound: true }); } catch (err) {} }, true);
+} catch (e) {}
 'use strict';
 // ================= util: math, matrices, noise, rng, save =================
 const PI = Math.PI, TAU = PI * 2, DEG = PI / 180;
@@ -318,9 +327,9 @@ function fmtMoney(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
 function fmtTime(min) { min = ((min % 1440) + 1440) % 1440; const h = Math.floor(min / 60), m = Math.floor(min % 60); return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
 
 // ---------- analytics (safe, never throws, no-op without gtag) ----------
-function track(name, params) { try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) { } }
-function spend(v, item) { SAVE.money -= v; if (v > 0) track('spend_virtual_currency', { virtual_currency_name: 'cash', value: Math.round(v), item_name: item }); }
-function earn(v, src) { if (v > 0) track('earn_virtual_currency', { virtual_currency_name: 'cash', value: Math.round(v), source: src }); }
+function track(name, params) { zt(name, params || {}); } // GA4 via shared zt helper (game_id, dedupe, cap)
+function spend(v, item) { SAVE.money -= v; if (v > 0) track('spend_virtual_currency', { virtual_currency_name: 'coins', value: Math.round(v), item_name: item }); }
+function earn(v, src) { if (v > 0) track('earn_virtual_currency', { virtual_currency_name: 'coins', value: Math.round(v), item_name: src }); }
 // ================= data: trucks, trailers, cargo, cities, customization =================
 const TRUCKS = [
   { id: 'rookie', name: 'Rookie 4x2', style: 'cabover', desc: 'Compact European cab-over. Cheap to run, easy to drive.', price: 0, lvl: 1, hp: 360, top: 90, brake: 1, tank: 400, eco: 1.0, grip: 1, wb: 3.8, col: 0, col2: 7, mass: 7.5 },
@@ -1927,7 +1936,7 @@ function startJobNow(job, mode) {
   else msg('📦 ' + job.cargo.name + ' to ' + CITIES[job.to].name + ' — ' + job.cargo.desc, 5);
   G.camInit = true; applyVolumes();
   G.lvlName = mode === 'park' ? 'park_' + job.park : mode === 'free' ? 'free_roam' : mode === 'tutorial' ? 'tutorial' : (job.daily ? 'daily_' : '') + job.cargo.id + '_' + job.from + '_' + job.to;
-  track('level_start', { level_name: G.lvlName, mode }); if (mode === 'tutorial') track('tutorial_begin');
+  track('game_start', { mode, level: G.lvlName }); track('level_start', { level: G.lvlName, level_name: G.lvlName, mode }); if (mode === 'tutorial') track('tutorial_begin'); ztPlay(true);
 }
 function msg(t, d, kind) { G.msgs.push({ t, d: d || 2.5, k: kind || '', a: 0 }); if (G.msgs.length > 4) G.msgs.shift(); }
 function violation(key, text, fine, cool) {
@@ -2209,7 +2218,7 @@ function finishJob() {
   const T = G.truck, J = G.job; if (G.result) return; const di = G.dock || dockInfo();
   let park = G.skipPark ? 0 : parkAccuracy(di); if (G.autoParked) park = Math.min(park, .3); if (G.autoPark && G.autoPark.mode === 'assist') park = Math.min(park, .45);
   G.autoPark = null;
-  if (G.mode === 'free') { G.state = 'menu'; showHUD(false); showScreen('scrTitle'); return; }
+  if (G.mode === 'free') { ztPing('free_roam_end'); G.state = 'menu'; showHUD(false); showScreen('scrTitle'); return; }
   const elapsedMin = ((G.tod - G.startTod + 24) % 24) * 60; const late = Math.max(0, elapsedMin - G.deadline);
   const timeS = late <= 0 ? 1 : clamp(1 - late / 60, 0, 1); const dmgS = 1 - T.cargoDmg; const violS = clamp(1 - G.viol.length * .2, 0, 1); const comfort = J && J.cargo.comfort ? G.comfort : 1;
   const score = (timeS * .28 + dmgS * .3 + violS * .2 + park * .22) * (.7 + .3 * comfort);
@@ -2221,11 +2230,12 @@ function finishJob() {
   SAVE.money += total; SAVE.xp += xp; SAVE.stats.deliveries++; SAVE.stats.earned += Math.max(0, total); SAVE.stats.fines += G.fines; SAVE.stats.dist += T.odo; SAVE.km += T.odo / 1000; if (stars === 5) SAVE.stats.perfect++;
   if (J && !tut) SAVE.city = J.to; SAVE.jobsDone++; SAVE.seed = (SAVE.seed * 1103515245 + 12345) >>> 0; SAVE.damage = Math.min(.7, T.damage); SAVE.fuel = Math.max(.15, T.fuel / T.tank); if (tut) SAVE.tutDone = true;
   if (dailyB) { SAVE.daily.done = true; SAVE.daily.day = todayKey(); SAVE.daily.streak++; }
+  if (!tut && total > (SAVE.bestPay || 0)) { SAVE.bestPay = total; track('post_score', { score: total, level: G.lvlName, mode: G.mode, stars }); }
   let lvUp = false; while (SAVE.xp >= xpFor(SAVE.level + 1)) { SAVE.level++; lvUp = true; }
   saveGame();
   G.result = { ok: true, stars, rows: [['Delivery pay', base], ['Time ' + (late > 0 ? '(' + Math.round(late) + ' min late)' : '(on time)'), timeAdj], ['Cargo damage ' + Math.round(T.cargoDmg * 100) + '%', dmgAdj], ['Parking ' + (G.skipPark ? '(skipped)' : Math.round(park * 100) + '%'), parkB]].concat(J && J.cargo.comfort ? [['Animal comfort ' + Math.round(comfort * 100) + '%', comfortAdj]] : []).concat(dailyB ? [['Daily challenge bonus', dailyB]] : []).concat([['Fines (' + G.viol.length + ')', -G.fines]]), total, xp, lvUp, viol: G.viol.slice(), tolls: G.tolls, fuel: G.fuelCost, park };
   G.state = 'result'; SFX.cash(); setTimeout(() => SFX.win(), 400); if (lvUp) setTimeout(() => SFX.level(), 1200); hornSet(false); showResults(); vibrate([40, 60, 40]);
-  track('level_end', { level_name: G.lvlName, success: true, stars }); earn(total, 'delivery'); if (tut) track('tutorial_complete');
+  track('level_end', { level: G.lvlName, level_name: G.lvlName, mode: G.mode, success: true, stars }); earn(total, 'delivery'); if (tut) track('tutorial_complete'); ztPing('level_clear');
 }
 function xpFor(l) { return l <= 1 ? 0 : Math.round(380 * Math.pow(l - 1, 1.4)); }
 function finishPark(ok) {
@@ -2233,10 +2243,11 @@ function finishPark(ok) {
   const tl = Math.max(0, G.parkT); const stars = ok ? clamp(1 + (acc > .55 ? 1 : 0) + (acc > .8 && tl > 10 ? 1 : 0), 1, 3) : 0; const prev = SAVE.park[lv] || 0; const reward = ok ? Math.max(0, stars - prev) * 800 + 200 : 0;
   if (ok) { SAVE.park[lv] = Math.max(prev, stars); SAVE.money += reward; SAVE.xp += 40 * stars; while (SAVE.xp >= xpFor(SAVE.level + 1)) SAVE.level++; saveGame(); }
   G.result = { ok, park: true, stars, rows: ok ? [['Accuracy', Math.round(acc * 100) + '%'], ['Cones hit', G.parkHits], ['Time left', Math.round(tl) + ' s']] : [['Time is up!', '']], total: reward, xp: 40 * stars };
-  track('level_end', { level_name: G.lvlName, success: !!ok, stars }); earn(reward, 'parking'); if (!ok) track('game_over', { level_name: G.lvlName, reason: 'time' });
+  track('level_end', { level: G.lvlName, level_name: G.lvlName, mode: 'park', success: !!ok, stars }); earn(reward, 'parking'); if (!ok) track('game_over', { score: 0, level: G.lvlName, level_name: G.lvlName, mode: 'park', reason: 'time' });
+  if (ok && stars > prev) track('post_score', { score: stars, level: G.lvlName, mode: 'park' }); ztPing(ok ? 'level_clear' : 'game_over');
   G.state = 'result'; ok ? (SFX.cash(), SFX.win()) : SFX.bad(); showResults();
 }
-function failJob(reason) { if (G.result || G.state !== 'play') return; G.result = { ok: false, reason, rows: [['Fines', -G.fines]], total: -Math.min(SAVE.money, 500 + G.fines), xp: 20 }; SAVE.money += G.result.total; track('level_end', { level_name: G.lvlName, success: false }); track('game_over', { level_name: G.lvlName, reason: String(reason).slice(0, 90) }); SAVE.damage = Math.min(.6, G.truck.damage); saveGame(); G.state = 'result'; SFX.bad(); showResults(); }
+function failJob(reason) { if (G.result || G.state !== 'play') return; G.result = { ok: false, reason, rows: [['Fines', -G.fines]], total: -Math.min(SAVE.money, 500 + G.fines), xp: 20 }; SAVE.money += G.result.total; ztPing('game_over'); track('level_end', { level: G.lvlName, level_name: G.lvlName, mode: G.mode, success: false }); track('game_over', { score: 0, level: G.lvlName, level_name: G.lvlName, mode: G.mode, reason: String(reason).slice(0, 90) }); SAVE.damage = Math.min(.6, G.truck.damage); saveGame(); G.state = 'result'; SFX.bad(); showResults(); }
 // ---------- particles ----------
 function addP(x, y, z, vx, vy, vz, life, size, grow, r, g, b, a, add) { if (G.parts.length > (G.quality > .8 ? 700 : 320)) return; G.parts.push({ x, y, z, vx, vy, vz, life, max: life, size, grow, r, g, b, a, add }); }
 function updateParticles(dt) { const P = G.parts; for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; p.life -= dt; if (p.life <= 0) { P[i] = P[P.length - 1]; P.pop(); continue; } p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vx *= .98; p.vz *= .98; p.size += p.grow * dt; if (p.add === 2) p.vy -= 9.8 * dt; } }
@@ -2749,7 +2760,7 @@ const SETS = [
 function buildSettings() {
   const L = $('setList'); L.innerHTML = '';
   for (const [k, n, opts] of SETS) { const r = document.createElement('div'); r.className = 'set'; r.innerHTML = '<span>' + n + '</span>'; const sg = document.createElement('div'); sg.className = 'seg';
-    for (const [v, t] of opts) { const b = document.createElement('button'); b.textContent = t; if (SAVE.settings[k] === v || (SAVE.settings[k] == null && v === false)) b.className = 'on'; b.onclick = () => { ensureAudio(); SAVE.settings[k] = v; saveGame(); SFX.click(); applySetting(k); buildSettings(); }; sg.appendChild(b); }
+    for (const [v, t] of opts) { const b = document.createElement('button'); b.textContent = t; if (SAVE.settings[k] === v || (SAVE.settings[k] == null && v === false)) b.className = 'on'; b.onclick = () => { ensureAudio(); SAVE.settings[k] = v; zt('settings_change', { setting: k, value: String(v) }); saveGame(); SFX.click(); applySetting(k); buildSettings(); }; sg.appendChild(b); }
     r.appendChild(sg); L.appendChild(r); if (k === 'ctrl' && SAVE.settings.ctrl === 'tilt') { const c = document.createElement('div'); c.className = 'set'; c.innerHTML = '<span>Tilt</span>'; const b = document.createElement('button'); b.className = 'btn small'; b.style.width = 'auto'; b.textContent = 'Calibrate (hold phone level)'; b.onclick = () => { askTilt(); SAVE.settings.tilt0 = TILT.raw || 0; saveGame(); toast('Tilt calibrated'); }; c.appendChild(b); L.appendChild(c); } }
 }
 function applySetting(k) {
@@ -2851,7 +2862,7 @@ function ctxAct(k) {
 // ---------- pause ----------
 function pauseGame() { if (G.state !== 'play') return; G.state = 'paused'; G.paused = true; audioEngine(null, false, 0); hornSet(false); showScreen('scrPause'); $('ctl').classList.add('hidden'); }
 function resumeGame() { if (G.state !== 'paused') return; G.state = 'play'; G.paused = false; showScreen(null); $('ctl').classList.remove('hidden'); layoutControls(); lastCtx = ''; }
-function quitToMenu() { G.state = 'menu'; G.paused = false; showHUD(false); audioEngine(null, false, 0); hornSet(false); if (G.truck && G.mode !== 'park' && G.mode !== 'tutorial') { SAVE.fuel = G.truck.fuel / G.truck.tank; SAVE.damage = G.truck.damage; saveGame(); } G.titleWorld = false; G.result = null; showScreen('scrTitle'); }
+function quitToMenu() { if (G.state === 'play' || G.state === 'paused') ztPing('quit'); G.state = 'menu'; G.paused = false; showHUD(false); audioEngine(null, false, 0); hornSet(false); if (G.truck && G.mode !== 'park' && G.mode !== 'tutorial') { SAVE.fuel = G.truck.fuel / G.truck.tank; SAVE.damage = G.truck.damage; saveGame(); } G.titleWorld = false; G.result = null; showScreen('scrTitle'); }
 // ---------- back navigation ----------
 let BACK_TO = 'scrTitle';
 function goBack() { if (CUR === 'scrSettings' && G.state === 'paused') { showScreen('scrPause'); return; } if (CUR === 'scrHow' && G.state === 'paused') { showScreen('scrPause'); return; } showScreen('scrTitle'); }
@@ -2875,7 +2886,6 @@ function frame(t) {
 }
 // ---------- boot ----------
 function boot() {
-  track('game_start');
   window.__HH = { G, get SAVE() { return SAVE; }, get W() { return W; }, TR, startJob, genJobs, dailyJob, finishJob, KEYS, showScreen, quitToMenu, resumeGame, pauseGame, layoutControls };
   CV = $('game'); HC = $('hud'); hx = HC.getContext('2d'); loadSave();
   const ok = initGL(CV, !isMobile());
