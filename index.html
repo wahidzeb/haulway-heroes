@@ -91,35 +91,38 @@ body:not(.ads-on) .adslot{display:none!important}
 #load{font-size:18px;font-weight:800}.spin{width:54px;height:54px;border-radius:50%;border:6px solid rgba(255,255,255,.15);border-top-color:#ffb020;animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 /* ---- in-game controls ---- */
 #ctl{position:fixed;inset:0;z-index:10;pointer-events:none}
-#ctl .c{position:absolute;pointer-events:auto;touch-action:none;display:flex;align-items:center;justify-content:center;font:900 15px system-ui;color:#fff;border-radius:50%;
- background:radial-gradient(circle at 50% 30%,rgba(80,90,110,.75),rgba(16,20,28,.8));border:1.5px solid rgba(255,255,255,.25);box-shadow:0 4px 12px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.25)}
-#ctl .c.on{background:radial-gradient(circle at 50% 30%,#ffe08a,#ff9a10);color:#2a1600;border-color:#fff3c0}
-#ctl .c.down{transform:scale(.92);filter:brightness(1.3)}
-#wheel{left:calc(env(safe-area-inset-left) + 14px);bottom:calc(env(safe-area-inset-bottom) + 14px);width:var(--wh);height:var(--wh);border-radius:50%!important;background:none!important;border:0!important;box-shadow:none!important}
-#wheel svg{width:100%;height:100%;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}
-#stL,#stR{bottom:calc(env(safe-area-inset-bottom) + 18px);width:var(--sb);height:var(--sb);font-size:30px!important;border-radius:22px!important}
-#stL{left:calc(env(safe-area-inset-left) + 14px)}#stR{left:calc(env(safe-area-inset-left) + 26px + var(--sb))}
-.pedal{border-radius:14px!important;width:var(--pw);height:var(--ph);bottom:calc(env(safe-area-inset-bottom) + 14px);flex-direction:column;font-size:11px!important;letter-spacing:1px;
- background:repeating-linear-gradient(180deg,#5a606a 0 6px,#2e333c 6px 10px)!important;border:2px solid #9aa3b2!important}
-.pedal.down{transform:perspective(300px) rotateX(18deg) scale(.96)!important}
-#gas{right:calc(env(safe-area-inset-right) + 14px);height:calc(var(--ph) * 1.15)!important}#brake{right:calc(env(safe-area-inset-right) + 24px + var(--pw));width:calc(var(--pw) * 1.2)!important}
-#dirBtn{right:calc(env(safe-area-inset-right) + 34px + var(--pw) * 2.2);bottom:calc(env(safe-area-inset-bottom) + 88px);width:64px;height:44px;border-radius:12px!important;font-size:18px!important}
-#gUp,#gDn{width:64px;height:36px;right:calc(env(safe-area-inset-right) + 34px + var(--pw) * 2.2);border-radius:12px!important;font-size:18px!important}
-#gUp{bottom:calc(env(safe-area-inset-bottom) + 182px)}#gDn{bottom:calc(env(safe-area-inset-bottom) + 140px)}
-#horn{width:64px;height:64px;font-size:26px!important;right:calc(env(safe-area-inset-right) + 34px + var(--pw) * 2.2);bottom:calc(env(safe-area-inset-bottom) + 14px)}
-#side{position:absolute;right:calc(env(safe-area-inset-right) + 10px);top:calc(env(safe-area-inset-top) + 60px);display:grid;grid-template-columns:42px 42px;gap:6px;pointer-events:none}
-#side .c,#topR .c{position:relative;width:42px;height:42px;font-size:16px}
-#topR{position:absolute;right:calc(env(safe-area-inset-right) + 10px);top:calc(env(safe-area-inset-top) + 10px);display:flex;gap:6px;pointer-events:none}
-#indRow{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:150px;pointer-events:none}
-#indRow .c{position:relative;width:50px;height:36px;border-radius:12px!important;font-size:18px}
-#ctxBtn{position:absolute;right:calc(env(safe-area-inset-right) + 112px);top:calc(env(safe-area-inset-top) + 60px);pointer-events:auto;border-radius:16px;width:auto!important;min-width:150px;z-index:2}
-#ctx2{position:absolute;right:calc(env(safe-area-inset-right) + 112px);top:calc(env(safe-area-inset-top) + 116px);pointer-events:auto;width:auto!important;min-width:120px}
-@media (orientation:portrait){#gUp,#gDn{width:var(--pw);height:38px;bottom:calc(env(safe-area-inset-bottom) + 22px + var(--ph) * 1.15)}#gUp{right:calc(env(safe-area-inset-right) + 14px)}#gDn{right:calc(env(safe-area-inset-right) + 24px + var(--pw));width:calc(var(--pw) * 1.2)}}
-@media (orientation:portrait){#side{display:flex;flex-direction:row;top:calc(env(safe-area-inset-top) + 10px);right:calc(env(safe-area-inset-right) + 106px)}#side .c,#topR .c{width:38px;height:38px;font-size:14px}#topR{gap:5px}#side{gap:5px}
- #ctxBtn{right:auto;left:50%;transform:translateX(-50%);top:46%}#ctx2{right:auto;left:50%;transform:translateX(-50%);top:calc(46% + 56px)}}
-#tut{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 40%);z-index:11;max-width:min(480px,80vw);background:linear-gradient(180deg,rgba(255,200,90,.93),rgba(255,150,30,.93));color:#2a1400;font-weight:800;font-size:14px;padding:10px 14px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.45);pointer-events:none;text-align:center}
+#ctl .c{position:absolute;pointer-events:auto;touch-action:none;display:flex;align-items:center;justify-content:center;font:900 14px system-ui;color:#fff;border-radius:50%;
+ background:radial-gradient(circle at 50% 30%,rgba(80,90,110,.55),rgba(16,20,28,.6));border:1.5px solid rgba(255,255,255,.22);box-shadow:0 3px 10px rgba(0,0,0,.3);opacity:.78;transition:opacity .15s}
+#ctl .c.on{background:radial-gradient(circle at 50% 30%,rgba(255,224,138,.95),rgba(255,154,16,.95));color:#2a1600;border-color:#fff3c0;opacity:.95}
+#ctl .c.down{transform:scale(.92);filter:brightness(1.3);opacity:1}
+/* positions are set in layoutControls() from hudLayout() (safe-area aware) */
+#wheel{width:var(--wh);height:var(--wh);border-radius:50%!important;background:none!important;border:0!important;box-shadow:none!important;opacity:.62!important}
+#wheel.down,#wheel:active{opacity:.9!important}
+#wheel svg{width:100%;height:100%;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))}
+#stL,#stR{width:var(--sb);height:var(--sb);font-size:26px!important;border-radius:20px!important}
+.pedal{border-radius:12px!important;width:var(--pw);height:var(--ph);flex-direction:column;font-size:9px!important;letter-spacing:1px;
+ background:repeating-linear-gradient(180deg,rgba(90,96,106,.6) 0 6px,rgba(46,51,60,.6) 6px 10px)!important;border:1.5px solid rgba(190,200,215,.6)!important;opacity:.72!important}
+.pedal.down{transform:perspective(300px) rotateX(18deg) scale(.96)!important;opacity:.95!important}
+#gas{height:calc(var(--ph) * 1.1)!important}#brake{width:calc(var(--pw) * 1.15)!important}
+#dirBtn{width:48px;height:34px;border-radius:10px!important;font-size:15px!important}
+#horn{width:44px;height:34px;border-radius:10px!important;font-size:17px!important}
+#gUp,#gDn{width:44px;height:32px;border-radius:10px!important;font-size:16px!important}
+#indRow{position:absolute;display:flex;justify-content:space-between;pointer-events:none}
+#indRow .c{position:relative;width:38px;height:28px;border-radius:9px!important;font-size:13px}
+#topR{position:absolute;display:flex;gap:6px;pointer-events:none}
+#topR .c{position:relative;width:38px;height:38px;font-size:15px}
+#side{position:absolute;display:none;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 20px);gap:6px;pointer-events:none;padding:6px;border-radius:14px;background:rgba(8,12,20,.55);border:1px solid rgba(255,255,255,.12)}
+#side.open{display:flex}
+#side .c{position:relative;width:38px;height:38px;font-size:15px;opacity:.9}
+#bMenu.has::after{content:"";position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#ffb020}
+#ctxBtn{position:absolute;pointer-events:auto;border-radius:14px;width:auto!important;min-width:132px;min-height:40px;font-size:14px;padding:6px 14px;z-index:2;transform:translateX(-50%)}
+#ctx2{position:absolute;pointer-events:auto;width:auto!important;min-width:100px;min-height:34px;font-size:13px;transform:translateX(-50%)}
+#tut{position:fixed;left:50%;transform:translateX(-50%);top:var(--toastY,60px);z-index:11;max-width:min(440px,94vw);background:rgba(255,176,32,.9);color:#2a1400;font-weight:800;font-size:12.5px;line-height:1.3;padding:5px 12px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.35);pointer-events:none;text-align:center;transition:opacity .35s}
+#tut.fade{opacity:0}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 12px);transform:translateX(-50%);z-index:40;background:rgba(10,14,20,.92);border:1px solid rgba(255,190,90,.4);padding:10px 16px;border-radius:12px;font-weight:800;pointer-events:none;transition:opacity .3s;max-width:90vw;text-align:center}
-#rot{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 46%);transform:translateX(-50%);z-index:30;font-size:12px;font-weight:800;background:rgba(0,0,0,.6);padding:5px 10px;border-radius:999px;pointer-events:none}
+body.ingame #toast{bottom:auto;top:var(--toastY,60px);padding:5px 12px;font-size:12.5px;border-radius:12px;background:rgba(10,14,20,.8)}
+#rot{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 10px);transform:translateX(-50%);z-index:30;font-size:12px;font-weight:800;background:rgba(0,0,0,.6);padding:5px 10px;border-radius:999px;pointer-events:none}
+#safeProbe{position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 #noGL{position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;padding:20px;background:#0b0e14}
 @media (orientation:portrait){#scrTitle{align-items:center;padding-left:12px;background:linear-gradient(180deg,rgba(6,8,12,.75),rgba(6,8,12,.3) 50%,rgba(6,8,12,.85))}#scrTitle .adslot{align-self:center}.logo{text-align:center}}
 @media (max-height:430px){.panel{padding:10px}.btn{min-height:40px;font-size:14px}.panel h2{font-size:18px;margin-bottom:6px}#scrTitle .menuBox{gap:6px}}
@@ -136,13 +139,14 @@ body:not(.ads-on) .adslot{display:none!important}
   <div class="c" id="dirBtn">D</div>
   <div class="c hidden" id="gUp">＋</div><div class="c hidden" id="gDn">－</div>
   <div class="c" id="horn">📯</div>
-  <div id="topR"><div class="c" id="bCam">🎥</div><div class="c" id="bPause">⏸</div></div>
+  <div id="topR"><div class="c" id="bCam" title="Camera">🎥</div><div class="c" id="bMenu" title="More controls">☰</div><div class="c" id="bPause" title="Pause">⏸</div></div>
   <div id="side"><div class="c" id="bLights">💡</div><div class="c" id="bHaz">⚠</div><div class="c" id="bHand">P</div><div class="c" id="bCruise">CC</div><div class="c" id="bRadio">📻</div><div class="c" id="bMirror">🪞</div></div>
   <div id="indRow"><div class="c" id="bIndL">⬅</div><div class="c" id="bIndR">➡</div></div>
   <button class="btn amber hidden" id="ctxBtn">⛽ REFUEL</button>
   <button class="btn small hidden" id="ctx2">Skip</button>
 </div>
 <div id="tut" class="hidden"></div>
+<div id="safeProbe"></div>
 <div id="toast" class="hidden"></div>
 <div id="rot" class="hidden">↻ Rotate to landscape for the best view</div>
 
@@ -1132,7 +1136,7 @@ function buildWorld(opt) {
   const bc = i => { const B = BIOMES[BIOME_KEYS[P.biome[i]]]; return [hex(B.g1), hex(B.g2), hex(B.rock)]; };
   for (let i = 0; i < n; i++) { let a = [0, 0, 0], b = [0, 0, 0], c = [0, 0, 0], cnt = 0; for (let j = Math.max(0, i - 25); j < Math.min(n, i + 26); j += 5) { const q3 = bc(j); a = a.map((v, k) => v + q3[0][k]); b = b.map((v, k) => v + q3[1][k]); c = c.map((v, k) => v + q3[2][k]); cnt++; } w.COL.push([scalec(a, 1 / cnt), scalec(b, 1 / cnt), scalec(c, 1 / cnt)]); }
   // tropic coast water
-  let tmin = 1e9; for (let i = 0; i < n; i++) if (BIOME_KEYS[P.biome[i]] === 'tropic') tmin = Math.min(tmin, P.y[i]); if (tmin < 1e8) w.waterY = tmin - 2.6;
+  let tmin = 1e9; for (let i = 0; i < n; i++) if (BIOME_KEYS[P.biome[i]] === 'tropic') tmin = Math.min(tmin, P.y[i]); if (tmin < 1e8) { w.waterY = tmin - 2.6; let i0 = n, i1 = -1; for (let i = 0; i < n; i++) if (BIOME_KEYS[P.biome[i]] === 'tropic') { i0 = Math.min(i0, i); i1 = Math.max(i1, i); } w.waterI = [i0, i1]; }
   // yards
   w.startYard = makeYard(w, 0, false); w.endYard = opt.park ? null : makeYard(w, n - 1, true, opt.dock);
   if (opt.park) w.endYard = makeParkYard(w, opt.park);
@@ -1938,7 +1942,7 @@ function startJobNow(job, mode) {
   G.lvlName = mode === 'park' ? 'park_' + job.park : mode === 'free' ? 'free_roam' : mode === 'tutorial' ? 'tutorial' : (job.daily ? 'daily_' : '') + job.cargo.id + '_' + job.from + '_' + job.to;
   track('game_start', { mode, level: G.lvlName }); track('level_start', { level: G.lvlName, level_name: G.lvlName, mode }); if (mode === 'tutorial') track('tutorial_begin'); ztPlay(true);
 }
-function msg(t, d, kind) { G.msgs.push({ t, d: d || 2.5, k: kind || '', a: 0 }); if (G.msgs.length > 4) G.msgs.shift(); }
+function msg(t, d, kind) { G.msgs.push({ t, d: Math.min(d || 2.5, 3.5), k: kind || '', a: 0 }); if (G.msgs.length > 4) G.msgs.shift(); }
 function violation(key, text, fine, cool) {
   const now = G.clock; if (G.lastViolT[key] && now - G.lastViolT[key] < (cool || 15)) return; G.lastViolT[key] = now;
   if (G.mode === 'free' || G.mode === 'park') { msg('⚠️ ' + text, 2.5, 'bad'); SFX.bad(); return; }
@@ -1948,10 +1952,10 @@ function violation(key, text, fine, cool) {
 const TUT = [
   { t: 'Welcome, driver! Hold the GAS pedal (bottom right) to roll out of the depot.', c: () => G.truck.v > 3 },
   { t: 'Steer with the wheel on the left. Lane Assist keeps you centered when you let go.', c: () => G.truck.s > 140 },
-  { t: 'BRAKE is left of the gas pedal. Watch the speed-limit sign under the minimap!', c: () => G.truck.s > 240 },
+  { t: 'BRAKE is left of the gas pedal. Watch the speed-limit sign on the minimap!', c: () => G.truck.s > 240 },
   { t: 'Traffic light ahead: stop at red, go on green. Running a red light costs money.', c: () => W.lights.length === 0 || G.truck.s > W.lights[W.lights.length - 1].s + 10 },
   { t: 'Toll gate ahead! Slow below 15 km/h and the barrier opens (auto-pay).', c: () => W.tolls.length === 0 || G.truck.s > W.tolls[0].s + 10 },
-  { t: 'Nice! Tap 💡 for headlights, ◀ ▶ for indicators and 📯 for the horn. 🎥 changes the camera.', c: () => G.tutT > 7 },
+  { t: 'Nice! ☰ opens lights, hazards, handbrake and cruise. ⬅ ➡ are indicators, 📯 is the horn, 🎥 changes the camera.', c: () => G.tutT > 7 },
   { t: 'Follow the road to the depot. The minimap shows your route in blue.', c: () => G.phase === 'dock' },
   { t: 'Back into the GREEN dock: tap R, then hold GAS. When reversing, steering aims the TRAILER (Trailer Assist). Or tap AUTO-PARK.', c: () => false }
 ];
@@ -2304,7 +2308,7 @@ function setCam(px, py, pz, tx, ty, tz, fov, near) {
   const u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
   CAM.f = f; CAM.r = r; CAM.u = u; CAM.ty = Math.tan(fov / 2); CAM.tx = CAM.ty * asp;
 }
-function fovFor() { const asp = CV.width / CV.height; return (asp < 1 ? 78 : asp < 1.4 ? 68 : 58) * DEG; }
+function fovFor() { const asp = CV.width / CV.height; if (asp < 1) { const hf = 66 * DEG; return Math.min(100 * DEG, 2 * Math.atan(Math.tan(hf / 2) / asp)); } return (asp < 1.4 ? 68 : 58) * DEG; }
 function updateCamera(dt) {
   const T = G.truck; if (!T) return; const k = 1 - Math.exp(-dt * 5); const fov = fovFor();
   const f = fwd(T.h); const pivot = [T.x + f[0] * T.c, T.y, T.z + f[1] * T.c];
@@ -2317,12 +2321,14 @@ function updateCamera(dt) {
   if (G.cam === 0 || G.cam === 1) {
     let yawT = T.tr ? T.h + wrapA(T.th - T.h) * .35 : T.h; if (T.v < -.5 && T.tr) yawT = T.h + wrapA(T.th - T.h) * .5;
     if (G.camInit) { G.camYaw = yawT; } G.camYaw = G.camYaw + wrapA(yawT - G.camYaw) * (1 - Math.exp(-dt * 2.5));
-    const far = G.cam === 1; const dist = (far ? 30 : 18) + (T.tr ? 4 : 0), ht = far ? 12 : 6.6; const yw = G.camYaw + lookYaw; const fy = fwd(yw);
-    pos = [pivot[0] - fy[0] * dist, pivot[1] + ht + lookPitch * 10, pivot[2] - fy[1] * dist]; tgt = [pivot[0] + fy[0] * 12, pivot[1] + (far ? 1.6 : .6), pivot[2] + fy[1] * 12];
+    const far = G.cam === 1; const port = CV.height > CV.width; const yw = G.camYaw + lookYaw; const fy = fwd(yw);
+    // portrait: higher + further ahead look so the rig sits low and the road ahead stays clear
+    const dist = (far ? 30 : port ? 15 : 17) + (T.tr ? 4 : 0), ht = far ? 12 : port ? 12.5 : 6.8, ahead = port ? 24 : 16, tY = far ? 1.6 : port ? -2.5 : .4;
+    pos = [pivot[0] - fy[0] * dist, pivot[1] + ht + lookPitch * 10, pivot[2] - fy[1] * dist]; tgt = [pivot[0] + fy[0] * ahead, pivot[1] + tY, pivot[2] + fy[1] * ahead];
     const gy = groundY(pos[0], pos[2]) + 1.5; if (pos[1] < gy) pos[1] = gy;
   } else if (G.cam === 2) {
     const M = tractorM(T); const e = T.info.eye; const x = M[0] * e[0] + M[4] * e[1] + M[8] * e[2] + M[12], y = M[1] * e[0] + M[5] * e[1] + M[9] * e[2] + M[13], z = M[2] * e[0] + M[6] * e[1] + M[10] * e[2] + M[14];
-    const yw = T.h + lookYaw + T.steer * .25; const fy = fwd(yw); pos = [x, y, z]; tgt = [x + fy[0] * 10, y - .5 + lookPitch * 8 + T.pitch * 10, z + fy[1] * 10]; near = .12; fv = fov * 1.1;
+    const yw = T.h + lookYaw + T.steer * .25; const fy = fwd(yw); pos = [x, y, z]; const portC = CV.height > CV.width; tgt = [x + fy[0] * 10, y - (portC ? 1.0 : .5) + lookPitch * 8 + T.pitch * 10, z + fy[1] * 10]; near = .12; fv = portC ? Math.min(fov, 82 * DEG) : fov * 1.1;
     G.camPos = pos.slice(); G.camTgt = tgt.slice(); setCam(pos[0], pos[1], pos[2], tgt[0], tgt[1], tgt[2], fv, near); G.camInit = false; return;
   } else {
     // top / dock cam
@@ -2360,7 +2366,7 @@ function renderScene(mirror) {
   for (const b of W.buckets.values()) { const dx = b.cx - cx, dz = b.cz - cz; if (dx * dx + dz * dz > (vd + b.r) * (vd + b.r)) continue; if (!sphereVisible(R.planes, b.cx, b.cy, b.cz, b.r)) continue; vis.push(b); }
   useProg(GLX.main); setTint([1, 1, 1], [1, 1, 1]); setEm(null, 0);
   for (const b of vis) drawMesh(b.mesh, R.ident, b.mesh.length > 1);
-  if (W.waterY > -1e8) { M4.trs(_md, cx, W.waterY, cz, 0, 0, 0); drawMesh(MESH.water, _md, false); }
+  const wri = G.truck ? G.truck.ri : 0, wm = Math.round(W.n * 450 / Math.max(1, W.len)); if (W.waterY > -1e8 && CAM.pos[1] > W.waterY + .5 && (!W.waterI || (wri > W.waterI[0] - wm && wri < W.waterI[1] + wm))) { M4.trs(_md, cx, W.waterY, cz, 0, 0, 0); drawMesh(MESH.water, _md, false); }
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, ATL.tex); for (const b of vis) if (b.tmesh.length) drawMesh(b.tmesh, R.ident, false);
   // dynamic world objects
   useProg(GLX.main); setTint([1, 1, 1], [1, 1, 1]);
@@ -2452,8 +2458,9 @@ function renderFrame(dt) {
   updateCamera(dt); computeLighting(false); gl.clearColor(L.fog[0], L.fog[1], L.fog[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   renderScene(false);
   // rear-view mirror
-  if (SAVE.settings.mirror && G.state === 'play' && G.quality > .55 && G.cam !== 3 && !G.hideMirror) {
-    const T = G.truck; const mw = Math.round(CV.width * .26), mh = Math.round(CV.height * .15); const mx = Math.round((CV.width - mw) / 2), my = Math.round(CV.height - mh - CV.height * .02);
+  const MIR = G.state === 'play' ? hudLayout().mir : null;
+  if (MIR && G.quality > .45 && G.cam !== 3 && !G.hideMirror) {
+    const T = G.truck; const kk = CV.height / innerHeight; const mw = Math.round(MIR[2] * kk), mh = Math.round(MIR[3] * kk); const mx = Math.round(MIR[0] * kk), my = Math.round(CV.height - MIR[1] * kk - mh);
     G.mirrorRect = [mx, CV.height - my - mh, mw, mh];
     const save = { pos: CAM.pos.slice(), tgt: CAM.tgt.slice(), fov: CAM.fov };
     gl.viewport(mx, my, mw, mh); gl.enable(gl.SCISSOR_TEST); gl.scissor(mx, my, mw, mh); gl.clearColor(L.fog[0], L.fog[1], L.fog[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -2467,11 +2474,27 @@ function renderFrame(dt) {
 // ================= hud: gauges, minimap, GPS, dock assist, cab dashboard (2D canvas overlay) =================
 let HC, hx, HW = 0, HH = 0, HD = 1;
 function hudResize() { if (!HC) return; HD = Math.min(window.devicePixelRatio || 1, 2); HW = window.innerWidth; HH = window.innerHeight; HC.width = HW * HD; HC.height = HH * HD; HC.style.width = HW + 'px'; HC.style.height = HH + 'px'; }
-// shared layout so DOM controls and canvas HUD agree
+// shared layout so DOM controls and canvas HUD agree (all CSS px, safe-area aware)
 function hudLayout() {
-  const w = window.innerWidth, h = window.innerHeight, m = Math.min(w, h), port = h > w; const sc = clamp(m / 400, .72, 1.25); const whs = clamp(m * .42, 120, 210);
-  const cw = 300 * sc, chh = 104 * sc; const bot = port ? whs + 30 : 6 * sc; const cy = h - chh - bot; const mr = clamp(m * .16, 52, 92);
-  return { port, sc, cw, chh, cx: w / 2 - cw / 2, cy, indBottom: bot + chh + 22 * sc, mr, mcy: (port ? 58 : 12) + mr };
+  const w = window.innerWidth, h = window.innerHeight, m = Math.min(w, h), port = h > w; const sc = clamp(m / 400, .8, 1.15);
+  const sl = SAFE.l, st = SAFE.t, sr = SAFE.r, sb = SAFE.b, pad = 10;
+  const whs = Math.round(clamp(m * .30, 100, 150)), pw = Math.round(clamp(m * .13, 46, 64)), ph = Math.round(clamp(m * .25, 86, 124)), sbt = Math.round(clamp(m * .135, 50, 70));
+  const btn = 38; const mr = Math.round(clamp(m * .105, 36, 54));
+  const mcx = sl + 8 + mr, mcy = st + 8 + mr;
+  const topBtnsW = 3 * btn + 12; // cam, pause, menu
+  // merged info pill
+  let ix0, ix1, iy; if (port) { ix0 = sl + 8 + 2 * mr + 8; ix1 = w - sr - 8; iy = st + 8 + btn + 8; } else { ix0 = sl + 8 + 2 * mr + 14; ix1 = w - sr - 8 - topBtnsW - 10; iy = st + 8; }
+  const icx = (ix0 + ix1) / 2, iw = Math.min(ix1 - ix0, 420), ih = Math.round(38 * sc);
+  let below = iy + ih + 6;
+  // mirror (optional, small)
+  const S = SAVE.settings; const mirOn = port ? !!S.mirrorP : S.mirror !== false; let mir = null;
+  if (mirOn) { if (port) { const mw = Math.round(Math.min(iw, w * .42)), mh = Math.round(mw * .3); mir = [Math.round(icx - mw / 2), below, mw, mh]; below += mh + 6; } else { const mw = Math.round(clamp(w * .19, 120, 210)), mh = Math.round(mw * .34); mir = [Math.round(w - sr - 8 - mw), st + 8 + btn + 8, mw, mh]; } }
+  const toastY = Math.max(below, port ? mcy + mr + 6 : 0);
+  // bottom: speed pill between wheel and pedals
+  const steerW = S.ctrl === 'buttons' ? 2 * sbt + 12 : S.ctrl === 'wheel' ? whs : 0; const pedW = Math.round(pw + 8 + pw * 1.15);
+  let sx0 = sl + pad + steerW + 8, sx1 = w - sr - pad - pedW - 8; let spw = Math.min(160, sx1 - sx0); let spx, spy; const sph = Math.round(40 * sc);
+  if (spw >= 104) { spx = (sx0 + sx1) / 2 - spw / 2; spy = h - sb - pad - 12 - sph; } else { spw = 140; spx = w / 2 - spw / 2; spy = h - sb - pad - Math.max(whs, ph * 1.1 + 84) - 16 - sph; }
+  return { port, sc, w, h, sl, st, sr, sb, pad, whs, pw, ph, sbt, btn, mr, mcx, mcy, icx, iw, ih, iy, mir, toastY, spx, spy, spw, sph, steerW, pedW };
 }
 function units() { return SAVE.settings.units === 'mph' ? ['mph', 2.23694] : ['km/h', 3.6]; }
 function rrect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
@@ -2496,58 +2519,56 @@ function bar(c, x, y, w, h, t, col, icon, warn) { c.fillStyle = 'rgba(0,0,0,.45)
 function drawHUD(dt) {
   const c = hx; c.setTransform(HD, 0, 0, HD, 0, 0); c.clearRect(0, 0, HW, HH);
   if (G.state !== 'play' && G.state !== 'paused') return; const T = G.truck; if (!T) return;
-  const [uName, uMul] = units(); const port = HW < HH; const sc = clamp(Math.min(HW, HH) / 400, .72, 1.25);
-  if (G.cam === 2) drawCab(c, T, sc);
-  // ---- cluster ----
-  const LY = hudLayout(); const cw = LY.cw, chh = LY.chh; const cx = LY.cx, cy = LY.cy;
-  glassPanel(c, cx, cy, cw, chh, 18 * sc);
-  const r = 44 * sc; dial(c, cx + 54 * sc, cy + chh / 2 + 4 * sc, r, T.rpm, 2500, 'RPM ×100', 5, .8);
-  const spd = Math.abs(T.v) * uMul; dial(c, cx + cw - 54 * sc, cy + chh / 2 + 4 * sc, r, spd, uMul > 3 ? 120 : 80, uName, 6, 0, null);
-  // center: gear + speed
-  const mx = cx + cw / 2; c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillStyle = '#fff'; c.font = '900 ' + Math.round(34 * sc) + 'px system-ui,Arial'; c.shadowColor = 'rgba(60,180,255,.7)'; c.shadowBlur = 10; c.fillText(Math.round(spd), mx, cy + 34 * sc); c.shadowBlur = 0;
-  c.font = '700 ' + Math.round(10 * sc) + 'px system-ui'; c.fillStyle = '#9bd'; c.fillText(uName, mx, cy + 54 * sc);
-  const gtxt = T.dir < 0 ? 'R' : T.dir === 0 ? 'N' : (SAVE.settings.gears === 'auto' ? 'D' : 'M') + T.gear; c.font = '900 ' + Math.round(18 * sc) + 'px system-ui'; c.fillStyle = T.dir < 0 ? '#ff6a50' : '#7dffb0'; c.fillText(gtxt, mx, cy + 74 * sc);
-  // indicators
-  const ib = G.blinkOn; c.font = '900 ' + Math.round(16 * sc) + 'px system-ui'; c.fillStyle = (T.indL || T.hazard) && ib ? '#3dff6a' : 'rgba(255,255,255,.15)'; c.fillText('◀', mx - 30 * sc, cy + 14 * sc); c.fillStyle = (T.indR || T.hazard) && ib ? '#3dff6a' : 'rgba(255,255,255,.15)'; c.fillText('▶', mx + 30 * sc, cy + 14 * sc);
-  // icons
-  const icons = [[T.lights ? '#4af' : 'rgba(255,255,255,.18)', '💡'], [T.cruise > 0 ? '#3f6' : 'rgba(255,255,255,.18)', 'CC'], [G.in.hand ? '#f43' : 'rgba(255,255,255,.18)', 'P'], [G.autoSteer ? '#3cf' : 'rgba(255,255,255,.18)', 'LA']];
-  c.font = '800 ' + Math.round(9 * sc) + 'px system-ui'; icons.forEach((ic, i) => { const x = mx - 27 * sc + i * 18 * sc, y = cy + 92 * sc; c.fillStyle = ic[0]; c.fillText(ic[1] === '💡' ? 'HL' : ic[1], x, y); });
-  if (T.cruise > 0) { c.fillStyle = '#3f6'; c.font = '700 ' + Math.round(9 * sc) + 'px system-ui'; c.fillText(Math.round(T.cruise * uMul), mx + 44 * sc, cy + 92 * sc); }
-  // bars (fuel, truck damage, cargo damage) above the cluster
-  const bw = 70 * sc, bh = 7 * sc, by = cy - 14 * sc; bar(c, cx + 34 * sc, by, bw, bh, T.fuel / T.tank, '#ffc21a', '⛽', 1); bar(c, cx + 34 * sc + bw + 28 * sc, by, bw, bh, 1 - T.damage, '#3dd06a', '🔧'); if (T.cargo) bar(c, cx + 34 * sc + 2 * (bw + 28 * sc), by, bw - 10 * sc, bh, 1 - T.cargoDmg, '#38b8ff', T.cargo.icon);
-  if (T.cargo && T.cargo.comfort) bar(c, cx + 34 * sc + 2 * (bw + 28 * sc), by - 13 * sc, bw - 10 * sc, bh, G.comfort, '#ff9ad0', '💗');
+  const [uName, uMul] = units(); const LY = hudLayout(); const port = LY.port, sc = LY.sc;
+  if (G.cam === 2) drawCab(c, T, sc, port);
+  // ---- compact speed / gear / rpm pill ----
+  const spd = Math.abs(T.v) * uMul; const px = LY.spx, py = LY.spy, pw = LY.spw, ph = LY.sph;
+  c.save(); c.globalAlpha = .9; glassPanel(c, px, py, pw, ph, ph / 2); c.restore();
+  c.textBaseline = 'middle'; c.textAlign = 'right'; c.fillStyle = '#fff'; c.font = '900 ' + Math.round(22 * sc) + 'px system-ui,Arial'; const sx = px + pw * .5; c.fillText(Math.round(spd), sx, py + ph * .44);
+  c.textAlign = 'left'; c.font = '700 ' + Math.round(9 * sc) + 'px system-ui'; c.fillStyle = '#9bd'; c.fillText(uName, sx + 3, py + ph * .52);
+  const gtxt = T.dir < 0 ? 'R' : T.dir === 0 ? 'N' : (SAVE.settings.gears === 'auto' ? 'D' : 'M') + T.gear; c.textAlign = 'center'; c.font = '900 ' + Math.round(15 * sc) + 'px system-ui'; c.fillStyle = T.dir < 0 ? '#ff6a50' : '#7dffb0'; c.fillText(gtxt, px + pw - ph * .62, py + ph * .44);
+  // indicators inside the pill
+  const ib = G.blinkOn; c.font = '900 ' + Math.round(11 * sc) + 'px system-ui'; c.fillStyle = (T.indL || T.hazard) && ib ? '#3dff6a' : 'rgba(255,255,255,.18)'; c.fillText('◀', px + ph * .42, py + ph * .44); c.fillStyle = (T.indR || T.hazard) && ib ? '#3dff6a' : 'rgba(255,255,255,.18)'; c.fillText('▶', px + pw - ph * .22, py + ph * .44);
+  // rpm strip
+  const rx = px + ph * .45, rw = pw - ph * .9, ry = py + ph - 8 * sc; const rt = clamp(T.rpm / 2500, 0, 1); c.fillStyle = 'rgba(255,255,255,.12)'; rrect(c, rx, ry, rw, 3 * sc, 1.5 * sc); c.fill(); c.fillStyle = rt > .8 ? '#ff5040' : '#36d1ff'; rrect(c, rx, ry, Math.max(3, rw * rt), 3 * sc, 1.5 * sc); c.fill();
+  // status chips above the pill (only when active)
+  const chips = []; if (T.lights) chips.push(['HL', '#4af']); if (T.cruise > 0) chips.push(['CC ' + Math.round(T.cruise * uMul), '#3f6']); if (G.in.hand) chips.push(['P', '#f43']); if (G.autoSteer) chips.push(['LA', '#3cf']); if (T.hazard) chips.push(['⚠', '#fb3']);
+  if (chips.length) { c.font = '800 ' + Math.round(9 * sc) + 'px system-ui'; let cx2 = px + 6; for (const ch of chips) { const tw = c.measureText(ch[0]).width + 8; c.fillStyle = 'rgba(0,0,0,.5)'; rrect(c, cx2, py - 13 * sc, tw, 11 * sc, 5 * sc); c.fill(); c.fillStyle = ch[1]; c.textAlign = 'left'; c.fillText(ch[0], cx2 + 4, py - 7.5 * sc); cx2 += tw + 3; } }
+  // thin bars under the pill: fuel, truck health, cargo, comfort
+  const bars = [[T.fuel / T.tank, '#ffc21a', 1], [1 - T.damage, '#3dd06a', 0]]; if (T.cargo) bars.push([1 - T.cargoDmg, '#38b8ff', 0]); if (T.cargo && T.cargo.comfort) bars.push([G.comfort, '#ff9ad0', 0]);
+  const bgap = 4, bw = (pw - 2 * ph * .3 - bgap * (bars.length - 1)) / bars.length, by = py + ph + 4; bars.forEach((b, i) => { const x = px + ph * .3 + i * (bw + bgap); c.fillStyle = 'rgba(0,0,0,.45)'; rrect(c, x, by, bw, 4, 2); c.fill(); c.fillStyle = b[2] && b[0] < .2 && G.blinkOn ? '#ff3030' : b[1]; rrect(c, x, by, Math.max(4, bw * clamp(b[0], 0, 1)), 4, 2); c.fill(); });
   // ---- minimap ----
-  const mr = LY.mr, mcx = 12 + mr + safeL(), mcy = LY.mcy + safeT();
-  drawMinimap(c, T, mcx, mcy, mr);
-  // speed limit sign + GPS arrow
-  if (!W.park) { const lim = W.LIM[clamp(T.ri, 0, W.n - 1)]; const sx = mcx + mr * .78, sy = mcy + mr * .82, sr = 17 * sc; c.fillStyle = '#fff'; c.beginPath(); c.arc(sx, sy, sr, 0, TAU); c.fill(); c.strokeStyle = '#d0101a'; c.lineWidth = sr * .24; c.beginPath(); c.arc(sx, sy, sr * .86, 0, TAU); c.stroke(); c.fillStyle = '#111'; c.font = '900 ' + Math.round(sr * .82) + 'px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(uMul > 3 ? lim : Math.round(lim / 1.609), sx, sy + 1);
-    if (spd > lim * uMul / 3.6 + 6 && G.blinkOn) { c.strokeStyle = '#ff3030'; c.lineWidth = 3; c.beginPath(); c.arc(sx, sy, sr + 4, 0, TAU); c.stroke(); } }
-  // top info line (under mirror)
-  const topY = port ? mcy + mr + 12 : (G.mirrorRect ? (G.mirrorRect[1] + G.mirrorRect[3]) / (CV.height / HH) + 6 : 10 + safeT());
+  const mr = LY.mr, mcx = LY.mcx, mcy = LY.mcy; drawMinimap(c, T, mcx, mcy, mr);
+  if (!W.park) { const lim = W.LIM[clamp(T.ri, 0, W.n - 1)]; const sx2 = mcx + mr * .8, sy2 = mcy + mr * .8, sr = 12 * sc; c.fillStyle = '#fff'; c.beginPath(); c.arc(sx2, sy2, sr, 0, TAU); c.fill(); c.strokeStyle = '#d0101a'; c.lineWidth = sr * .24; c.beginPath(); c.arc(sx2, sy2, sr * .86, 0, TAU); c.stroke(); c.fillStyle = '#111'; c.font = '900 ' + Math.round(sr * .82) + 'px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(uMul > 3 ? lim : Math.round(lim / 1.609), sx2, sy2 + 1);
+    if (spd > lim * uMul / 3.6 + 6 && G.blinkOn) { c.strokeStyle = '#ff3030'; c.lineWidth = 2.5; c.beginPath(); c.arc(sx2, sy2, sr + 3, 0, TAU); c.stroke(); } }
+  // clock + money: portrait = top row gap, landscape = under minimap
+  c.font = '800 ' + Math.round(11 * sc) + 'px system-ui'; c.fillStyle = '#fff'; c.shadowColor = '#000'; c.shadowBlur = 4; c.textBaseline = 'middle'; const cm = fmtTime(G.tod * 60) + '  ' + fmtMoney(SAVE.money);
+  if (port) { c.textAlign = 'center'; c.fillText(cm, (LY.mcx + mr + LY.w - LY.sr - 8 - (3 * LY.btn + 12)) / 2, LY.st + 8 + LY.btn / 2); } else { c.textAlign = 'left'; c.fillText(cm, LY.sl + 8, mcy + mr + 14 * sc); } c.shadowBlur = 0;
+  // ---- merged job + next-event pill ----
   let info = ''; if (G.job && G.mode !== 'park' && G.mode !== 'free') { const rem = Math.max(0, W.len - T.s); const el = ((G.tod - G.startTod + 24) % 24) * 60; const left = G.deadline - el; info = G.job.cargo.icon + ' ' + CITIES[G.job.to].name + ' · ' + (rem / 1000).toFixed(1) + ' km · ' + (left >= 0 ? '⏱ ' + Math.floor(left / 60) + 'h' + String(Math.floor(left % 60)).padStart(2, '0') : '⏰ LATE ' + Math.round(-left) + 'm'); }
-  else if (G.mode === 'free') info = '🛣️ Free roam · ' + (T.odo / 1000).toFixed(1) + ' km driven'; else if (G.mode === 'park') info = '🅿️ ' + PARK_LEVELS[G.job.park].name + ' · ⏱ ' + Math.max(0, Math.ceil(G.parkT)) + ' s';
-  c.font = '800 ' + Math.round(13 * sc) + 'px system-ui'; const iw = c.measureText(info).width + 24; if (info) { glassPanel(c, HW / 2 - iw / 2, topY, iw, 24 * sc, 12 * sc); c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(info, HW / 2, topY + 12 * sc + 1); }
-  // GPS next-turn arrow + next event
-  if (!W.park && G.phase === 'drive') { const nx = nextHint(T); if (nx) { const y = topY + 30 * sc; c.font = '800 ' + Math.round(12 * sc) + 'px system-ui'; const tw = c.measureText(nx.t).width + 44 * sc; glassPanel(c, HW / 2 - tw / 2, y, tw, 26 * sc, 13 * sc); c.save(); c.translate(HW / 2 - tw / 2 + 16 * sc, y + 13 * sc); c.rotate(-nx.a); c.fillStyle = '#4af'; c.beginPath(); c.moveTo(0, -9 * sc); c.lineTo(7 * sc, 4 * sc); c.lineTo(2 * sc, 3 * sc); c.lineTo(2 * sc, 9 * sc); c.lineTo(-2 * sc, 9 * sc); c.lineTo(-2 * sc, 3 * sc); c.lineTo(-7 * sc, 4 * sc); c.fill(); c.restore(); c.fillStyle = nx.c || '#fff'; c.textAlign = 'left'; c.fillText(nx.t, HW / 2 - tw / 2 + 30 * sc, y + 14 * sc); } }
-  // clock + money (top right under buttons)
-  c.textAlign = 'left'; c.font = '800 ' + Math.round(12 * sc) + 'px system-ui'; c.fillStyle = '#fff'; c.shadowColor = '#000'; c.shadowBlur = 4; c.fillText('🕒 ' + fmtTime(G.tod * 60) + '  ' + fmtMoney(SAVE.money), 12 + safeL(), mcy + mr + (port ? 0 : 0) + 34 * sc); c.shadowBlur = 0;
-  // dock assist panel
-  if (G.phase === 'dock' && G.dock) { const d = G.dock; const ok = G.dockOK; const w = 190 * sc, h = 50 * sc, x = HW / 2 - w / 2, y = topY + 30 * sc; glassPanel(c, x, y, w, h, 12 * sc); c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = '900 ' + Math.round(15 * sc) + 'px system-ui'; c.fillStyle = ok ? '#3dff7a' : '#fff'; c.fillText(ok ? (Math.abs(T.v) < .3 ? '✓ HOLD… ' + Math.round(G.dockHold * 100) + '%' : '✓ STOP NOW') : (W.park ? 'Bay' : 'Dock ' + (W.endYard.target + 1)) + ' · ' + Math.max(0, d.lon).toFixed(1) + ' m', x + w / 2, y + 16 * sc);
-    c.font = '700 ' + Math.round(11 * sc) + 'px system-ui'; c.fillStyle = Math.abs(d.lat) < 1 ? '#7dffb0' : '#ffcf5a'; c.fillText('↔ ' + (d.lat > 0 ? 'R ' : 'L ') + Math.abs(d.lat).toFixed(2) + ' m', x + w * .3, y + 36 * sc); c.fillStyle = Math.abs(d.ang) < 9 * DEG ? '#7dffb0' : '#ffcf5a'; c.fillText('∠ ' + Math.round(Math.abs(d.ang) / DEG) + '°', x + w * .7, y + 36 * sc);
-    if (T.dir > 0 && G.cam !== 3 && !G.autoPark) { c.font = '800 ' + Math.round(12 * sc) + 'px system-ui'; c.fillStyle = '#ffcf5a'; c.fillText('Tap R to reverse', HW / 2, y + h + 14 * sc); } }
-  // messages
-  let my = Math.max(topY + 70 * sc, HH * (port ? .36 : .22)); const maxM = HH < 450 && !port ? 2 : 3; const MS = G.msgs.slice(-maxM); for (const m of MS) { const a = clamp(Math.min(m.a * 5, (m.d - m.a) * 3), 0, 1); c.globalAlpha = a; c.font = '900 ' + Math.round(16 * sc) + 'px system-ui'; const w = Math.min(port ? HW - 20 : HW - 2 * (2 * mr + 40), c.measureText(m.t).width + 30); glassPanel(c, HW / 2 - w / 2, my, w, 30 * sc, 15 * sc); c.fillStyle = m.k === 'bad' ? '#ff8a7a' : m.k === 'good' ? '#7dffb0' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(m.t, HW / 2, my + 15 * sc + 1, w - 18); my += 36 * sc; c.globalAlpha = 1; }
+  else if (G.mode === 'free') info = '🛣️ Free roam · ' + (T.odo / 1000).toFixed(1) + ' km'; else if (G.mode === 'park') info = '🅿️ ' + PARK_LEVELS[G.job.park].name + ' · ⏱ ' + Math.max(0, Math.ceil(G.parkT)) + ' s';
+  let nx = !W.park && G.phase === 'drive' ? nextHint(T) : null; if (nx && /^🏁 Depot/.test(nx.t) && G.job && G.mode !== 'free') nx = null; // depot distance already in line 1
+  if (info || nx) { const two = info && nx; const ih = two ? LY.ih : Math.round(22 * sc); c.font = '800 ' + Math.round(12 * sc) + 'px system-ui'; const w1 = info ? c.measureText(info).width : 0; c.font = '700 ' + Math.round(11 * sc) + 'px system-ui'; const w2 = nx ? c.measureText(nx.t).width + 20 * sc : 0;
+    const iw = Math.min(LY.iw, Math.max(w1, w2) + 24); const ix = LY.icx - iw / 2, iy = LY.iy; c.save(); c.globalAlpha = .88; glassPanel(c, ix, iy, iw, ih, Math.min(12, ih / 2)); c.restore(); c.textBaseline = 'middle';
+    let ly = iy + (two ? ih * .3 : ih / 2); if (info) { c.font = '800 ' + Math.round(12 * sc) + 'px system-ui'; c.fillStyle = '#fff'; c.textAlign = 'center'; c.fillText(info, LY.icx, ly + 1, iw - 12); ly = iy + ih * .72; }
+    if (nx) { c.font = '700 ' + Math.round(11 * sc) + 'px system-ui'; const tw = Math.min(w2, iw - 12); const x0 = LY.icx - tw / 2; c.save(); c.translate(x0 + 6 * sc, ly); c.rotate(-nx.a); c.fillStyle = '#4af'; const k = .6 * sc; c.beginPath(); c.moveTo(0, -9 * k); c.lineTo(7 * k, 4 * k); c.lineTo(2 * k, 3 * k); c.lineTo(2 * k, 9 * k); c.lineTo(-2 * k, 9 * k); c.lineTo(-2 * k, 3 * k); c.lineTo(-7 * k, 4 * k); c.fill(); c.restore(); c.fillStyle = nx.c || '#dfe9ff'; c.textAlign = 'left'; c.fillText(nx.t, x0 + 16 * sc, ly + 1, tw - 16 * sc); } }
+  // ---- top toasts: tutorial hint (DOM) + messages + dock panel ----
+  let ty = LY.toastY + (TUTH || 0);
+  if (G.phase === 'dock' && G.dock) { const d = G.dock; const ok = G.dockOK; const w = 176 * sc, h = 44 * sc, x = HW / 2 - w / 2, y = ty; c.save(); c.globalAlpha = .9; glassPanel(c, x, y, w, h, 12 * sc); c.restore(); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = '900 ' + Math.round(14 * sc) + 'px system-ui'; c.fillStyle = ok ? '#3dff7a' : '#fff'; c.fillText(ok ? (Math.abs(T.v) < .3 ? '✓ HOLD… ' + Math.round(G.dockHold * 100) + '%' : '✓ STOP NOW') : (W.park ? 'Bay' : 'Dock ' + (W.endYard.target + 1)) + ' · ' + Math.max(0, d.lon).toFixed(1) + ' m', x + w / 2, y + 14 * sc);
+    c.font = '700 ' + Math.round(11 * sc) + 'px system-ui'; c.fillStyle = Math.abs(d.lat) < 1 ? '#7dffb0' : '#ffcf5a'; c.fillText('↔ ' + (d.lat > 0 ? 'R ' : 'L ') + Math.abs(d.lat).toFixed(2) + ' m', x + w * .3, y + 32 * sc); c.fillStyle = Math.abs(d.ang) < 9 * DEG ? '#7dffb0' : '#ffcf5a'; c.fillText('∠ ' + Math.round(Math.abs(d.ang) / DEG) + '°', x + w * .7, y + 32 * sc);
+    ty += h + 5; if (T.dir > 0 && G.cam !== 3 && !G.autoPark) { c.font = '800 ' + Math.round(11 * sc) + 'px system-ui'; c.fillStyle = '#ffcf5a'; c.shadowColor = '#000'; c.shadowBlur = 4; c.fillText('Tap R to reverse', HW / 2, ty + 7 * sc); c.shadowBlur = 0; ty += 16 * sc; } }
+  const maxM = port ? 2 : (HH < 450 ? 1 : 2); const MS = G.msgs.slice(-maxM); for (const m of MS) { const a = clamp(Math.min(m.a * 5, (Math.min(m.d, 3.2) - m.a) * 3), 0, 1); if (a <= 0) continue; c.globalAlpha = a; c.font = '800 ' + Math.round(12 * sc) + 'px system-ui'; const w = Math.min(Math.min(HW - 20, 440), c.measureText(m.t).width + 24); const mh = 24 * sc; glassPanel(c, HW / 2 - w / 2, ty, w, mh, mh / 2); c.fillStyle = m.k === 'bad' ? '#ff8a7a' : m.k === 'good' ? '#7dffb0' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(m.t, HW / 2, ty + mh / 2 + 1, w - 14); ty += mh + 4; c.globalAlpha = 1; }
   // weighing progress
-  if (G.ctx && G.ctx.type === 'weighing') { const w = 160 * sc; c.fillStyle = 'rgba(0,0,0,.5)'; rrect(c, HW / 2 - w / 2, HH * .52, w, 12 * sc, 6 * sc); c.fill(); c.fillStyle = '#3dff7a'; rrect(c, HW / 2 - w / 2, HH * .52, w * clamp(G.ctx.p, 0, 1), 12 * sc, 6 * sc); c.fill(); c.fillStyle = '#fff'; c.font = '800 ' + Math.round(12 * sc) + 'px system-ui'; c.textAlign = 'center'; c.fillText('⚖️ Weighing…', HW / 2, HH * .52 - 10 * sc); }
+  if (G.ctx && G.ctx.type === 'weighing') { const w = 150 * sc, y = ty + 14 * sc; c.fillStyle = 'rgba(0,0,0,.5)'; rrect(c, HW / 2 - w / 2, y, w, 10 * sc, 5 * sc); c.fill(); c.fillStyle = '#3dff7a'; rrect(c, HW / 2 - w / 2, y, w * clamp(G.ctx.p, 0, 1), 10 * sc, 5 * sc); c.fill(); c.fillStyle = '#fff'; c.font = '800 ' + Math.round(11 * sc) + 'px system-ui'; c.textAlign = 'center'; c.fillText('⚖️ Weighing…', HW / 2, y - 8 * sc); }
   // overlays
   if (G.flash > 0) { c.fillStyle = 'rgba(255,255,255,' + clamp(G.flash * .6, 0, .6) + ')'; c.fillRect(0, 0, HW, HH); }
   if (G.blink > 0) { c.fillStyle = 'rgba(0,0,0,' + clamp(Math.sin(G.blink * PI / .5) * .85, 0, .85) + ')'; c.fillRect(0, 0, HW, HH); }
   if (T.damage > .6) { const g = c.createRadialGradient(HW / 2, HH / 2, HH * .4, HW / 2, HH / 2, HH); g.addColorStop(0, 'rgba(255,0,0,0)'); g.addColorStop(1, 'rgba(255,0,0,' + ((T.damage - .6) * .5 * (G.blinkOn ? 1 : .6)) + ')'); c.fillStyle = g; c.fillRect(0, 0, HW, HH); }
-  if (G.mirrorRect) { const k = HH / CV.height; const [x, y, w, h] = G.mirrorRect.map(v => v * k); c.strokeStyle = 'rgba(20,24,30,.95)'; c.lineWidth = 5; rrect(c, x - 2, y - 2, w + 4, h + 4, 8); c.stroke(); c.strokeStyle = 'rgba(200,220,255,.4)'; c.lineWidth = 1; rrect(c, x, y, w, h, 6); c.stroke(); }
-  if (SAVE.settings.showFps) { c.fillStyle = '#0f0'; c.font = '12px monospace'; c.textAlign = 'left'; c.fillText(Math.round(G.fpsAvg) + 'fps q' + G.quality.toFixed(2) + ' s' + G.scale.toFixed(2) + ' dc' + R.dc, 8, HH - 8); }
+  if (G.mirrorRect) { const k = HH / CV.height; const [x, y, w, h] = G.mirrorRect.map(v => v * k); c.strokeStyle = 'rgba(20,24,30,.9)'; c.lineWidth = 3; rrect(c, x - 1.5, y - 1.5, w + 3, h + 3, 7); c.stroke(); c.strokeStyle = 'rgba(200,220,255,.35)'; c.lineWidth = 1; rrect(c, x, y, w, h, 6); c.stroke(); }
+  if (SAVE.settings.showFps) { c.fillStyle = '#0f0'; c.font = '12px monospace'; c.textAlign = 'left'; c.fillText(Math.round(G.fpsAvg) + 'fps q' + G.quality.toFixed(2) + ' s' + G.scale.toFixed(2) + ' dc' + R.dc, 8 + LY.sl, LY.toastY + 120); }
 }
+let TUTH = 0;
 function safeL() { return SAFE.l; } function safeT() { return SAFE.t; } function safeR() { return SAFE.r; }
 const SAFE = { l: 0, t: 0, r: 0, b: 0 };
 function nextHint(T) {
@@ -2586,29 +2607,22 @@ function drawMinimap(c, T, cx, cy, r) {
   c.restore(); c.strokeStyle = 'rgba(190,220,255,.5)'; c.lineWidth = 2.5; c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.stroke();
   c.fillStyle = 'rgba(255,255,255,.75)'; c.font = '800 10px system-ui'; c.textAlign = 'center'; c.fillText('GPS', cx, cy + r - 9);
 }
-function drawCab(c, T, sc) {
+function drawCab(c, T, sc, port) {
+  // minimal cab overlay: slim pillars + a thin dash edge (the on-screen wheel is the steering wheel)
   const w = HW, h = HH; c.save();
-  // rain on windshield + wipers
   if ((G.weather === 'rain' || G.weather === 'snow') && G.wxAmt > .1) {
-    G.drops = G.drops || []; if (G.drops.length < 120 * G.wxAmt && Math.random() < .5) G.drops.push([Math.random() * w, Math.random() * h * .75, 2 + Math.random() * 5, 0]);
-    const ph = (G.wipe % 1); const ang = (ph < .5 ? ph * 2 : 2 - ph * 2) * PI * .78; // 0..140°
-    for (let k = G.drops.length - 1; k >= 0; k--) { const d = G.drops[k]; d[3] += .016; for (const px of [w * .3, w * .72]) { const a = Math.atan2(h * .82 - d[1], d[0] - px); const wa = PI - a; if (Math.abs(wa - ang) < .06) { G.drops.splice(k, 1); break; } } }
-    c.fillStyle = G.weather === 'snow' ? 'rgba(255,255,255,.7)' : 'rgba(200,220,255,.28)'; c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 1; for (const d of G.drops) { c.beginPath(); c.ellipse(d[0], d[1] + d[3] * 8, d[2] * .7, d[2], 0, 0, TAU); c.fill(); c.stroke(); }
-    c.strokeStyle = '#111'; c.lineCap = 'round'; for (const px of [w * .3, w * .72]) { c.lineWidth = 6 * sc; c.beginPath(); c.moveTo(px, h * .82); c.lineTo(px - Math.cos(ang) * h * .55, h * .82 - Math.sin(ang) * h * .55); c.stroke(); c.lineWidth = 3 * sc; c.strokeStyle = '#333'; c.stroke(); c.strokeStyle = '#111'; }
+    G.drops = G.drops || []; if (G.drops.length < 90 * G.wxAmt && Math.random() < .5) G.drops.push([Math.random() * w, Math.random() * h * .8, 2 + Math.random() * 4, 0]);
+    const ph = (G.wipe % 1); const ang = (ph < .5 ? ph * 2 : 2 - ph * 2) * PI * .78; const piv = h * .96;
+    for (let k = G.drops.length - 1; k >= 0; k--) { const d = G.drops[k]; d[3] += .016; for (const px of [w * .3, w * .72]) { const a = Math.atan2(piv - d[1], d[0] - px); const wa = PI - a; if (Math.abs(wa - ang) < .06) { G.drops.splice(k, 1); break; } } }
+    c.fillStyle = G.weather === 'snow' ? 'rgba(255,255,255,.65)' : 'rgba(200,220,255,.25)'; c.strokeStyle = 'rgba(255,255,255,.3)'; c.lineWidth = 1; for (const d of G.drops) { c.beginPath(); c.ellipse(d[0], d[1] + d[3] * 8, d[2] * .7, d[2], 0, 0, TAU); c.fill(); c.stroke(); }
+    c.lineCap = 'round'; const L = Math.min(h * .6, w * .55); for (const px of [w * .3, w * .72]) { c.strokeStyle = 'rgba(10,10,12,.85)'; c.lineWidth = 4 * sc; c.beginPath(); c.moveTo(px, piv); c.lineTo(px - Math.cos(ang) * L, piv - Math.sin(ang) * L); c.stroke(); }
   }
-  // A-pillars and roof
-  c.fillStyle = '#15171b'; c.beginPath(); c.moveTo(0, 0); c.lineTo(w * .06, 0); c.lineTo(w * .02, h * .75); c.lineTo(0, h * .8); c.fill(); c.beginPath(); c.moveTo(w, 0); c.lineTo(w * .94, 0); c.lineTo(w * .98, h * .75); c.lineTo(w, h * .8); c.fill();
-  const gr = c.createLinearGradient(0, 0, 0, h * .09); gr.addColorStop(0, '#202328'); gr.addColorStop(1, '#16181c'); c.fillStyle = gr; c.fillRect(0, 0, w, h * .07);
-  // dashboard
-  const dy = h * .78; const g = c.createLinearGradient(0, dy, 0, h); g.addColorStop(0, '#2a2e35'); g.addColorStop(.15, '#1c1f24'); g.addColorStop(1, '#0c0d10'); c.fillStyle = g; c.beginPath(); c.moveTo(0, dy + h * .04); c.quadraticCurveTo(w / 2, dy - h * .05, w, dy + h * .04); c.lineTo(w, h); c.lineTo(0, h); c.fill();
-  c.strokeStyle = 'rgba(255,255,255,.08)'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, dy + h * .04); c.quadraticCurveTo(w / 2, dy - h * .05, w, dy + h * .04); c.stroke();
-  // steering wheel (drawn, rotates)
-  const side = SAVE.settings.side === 'left' ? 1 : -1; const wx = w / 2 + side * w * .14, wy = h * 1.02, wr = Math.min(w, h) * .28; c.save(); c.translate(wx, wy); c.rotate(-T.steer / .62 * 2.2);
-  c.strokeStyle = '#0a0a0c'; c.lineWidth = wr * .16; c.beginPath(); c.arc(0, 0, wr, 0, TAU); c.stroke(); c.strokeStyle = '#2a2c30'; c.lineWidth = wr * .06; c.beginPath(); c.arc(0, 0, wr, PI * 1.1, PI * 1.9); c.stroke();
-  c.fillStyle = '#16181b'; for (const a of [PI, 0, PI / 2]) { c.save(); c.rotate(a); c.fillRect(0, -wr * .07, wr, wr * .14); c.restore(); } c.beginPath(); c.arc(0, 0, wr * .28, 0, TAU); c.fill(); c.fillStyle = '#c0c4ca'; c.font = '900 ' + Math.round(wr * .12) + 'px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('ZAIB', 0, 0);
-  c.restore();
-  // dashboard decorations for art truck: tassels
-  if (T.def.style === 'art') { for (let i = 0; i < 18; i++) { const x = w * .1 + i * w * .045; c.fillStyle = ART_COLS[i % 9]; c.beginPath(); c.moveTo(x, h * .07); c.lineTo(x + w * .02, h * .07); c.lineTo(x + w * .01, h * .07 + 14 + (i % 3) * 5); c.fill(); } }
+  // slim A-pillars + roof edge
+  c.fillStyle = 'rgba(18,20,24,.92)'; const pwid = port ? w * .025 : w * .03; c.beginPath(); c.moveTo(0, 0); c.lineTo(pwid * 1.6, 0); c.lineTo(pwid * .5, h * .7); c.lineTo(0, h * .72); c.fill(); c.beginPath(); c.moveTo(w, 0); c.lineTo(w - pwid * 1.6, 0); c.lineTo(w - pwid * .5, h * .7); c.lineTo(w, h * .72); c.fill();
+  c.fillRect(0, 0, w, Math.max(4, h * .012));
+  // thin dashboard edge at the very bottom
+  const dy = h * (port ? .955 : .93); const g = c.createLinearGradient(0, dy, 0, h); g.addColorStop(0, 'rgba(42,46,53,.95)'); g.addColorStop(1, 'rgba(12,13,16,.95)'); c.fillStyle = g; c.beginPath(); c.moveTo(0, dy + h * .015); c.quadraticCurveTo(w / 2, dy - h * .015, w, dy + h * .015); c.lineTo(w, h); c.lineTo(0, h); c.fill();
+  if (T.def.style === 'art') { for (let i = 0; i < 14; i++) { const x = w * .12 + i * w * .055; c.fillStyle = ART_COLS[i % 9]; c.beginPath(); c.moveTo(x, h * .012); c.lineTo(x + w * .018, h * .012); c.lineTo(x + w * .009, h * .012 + 8 + (i % 3) * 3); c.fill(); } }
   c.restore();
 }
 // ================= ui: screens, menus, garage, shop, settings, touch controls, main loop =================
@@ -2622,10 +2636,12 @@ function showScreen(id) {
   $('tut').classList.toggle('hidden', !(id == null && G.tut >= 0 && $('tut').textContent));
   updRot(); if (AU.ctx) applyVolumes();
 }
-function showHUD(on) { HUD_ON = on; $('ctl').classList.toggle('hidden', !on); if (on) layoutControls(); if (!on) { $('tut').classList.add('hidden'); G.in.gas = G.in.brake = 0; G.in.steer = 0; } updRot(); }
-function setTutText(t) { const e = $('tut'); e.textContent = t; e.classList.toggle('hidden', !t); }
+function showHUD(on) { HUD_ON = on; document.body.classList.toggle('ingame', !!on); $('ctl').classList.toggle('hidden', !on); if (on) layoutControls(); if (!on) { $('tut').classList.add('hidden'); TUTH = 0; toggleMenu(false); G.in.gas = G.in.brake = 0; G.in.steer = 0; } updRot(); }
+let tutTO = 0, tutTO2 = 0;
+function setTutText(t) { const e = $('tut'); clearTimeout(tutTO); clearTimeout(tutTO2); e.textContent = t || ''; e.classList.remove('fade'); e.classList.toggle('hidden', !t); TUTH = t ? e.offsetHeight + 5 : 0;
+  if (t) { const ms = clamp(2600 + t.length * 30, 3000, 5500); tutTO = setTimeout(() => { e.classList.add('fade'); tutTO2 = setTimeout(() => { e.classList.add('hidden'); e.classList.remove('fade'); TUTH = 0; }, 380); }, ms); } }
 let toastT = 0; function toast(t, d) { const e = $('toast'); e.textContent = t; e.classList.remove('hidden'); e.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => { e.style.opacity = 0; setTimeout(() => e.classList.add('hidden'), 300); }, (d || 2.2) * 1000); }
-let rotT = 0; function updRot() { const show = HUD_ON && window.innerHeight > window.innerWidth * 1.05; if (show && $('rot').classList.contains('hidden') && !rotT) { $('rot').classList.remove('hidden'); clearTimeout(rotT); rotT = setTimeout(() => { $('rot').classList.add('hidden'); }, 4000); } if (!show) { $('rot').classList.add('hidden'); clearTimeout(rotT); rotT = 0; } }
+let rotT = 0; function updRot() { const show = false; /* portrait is fully supported now: no rotate nag over the road */ if (show && $('rot').classList.contains('hidden') && !rotT) { $('rot').classList.remove('hidden'); clearTimeout(rotT); rotT = setTimeout(() => { $('rot').classList.add('hidden'); }, 4000); } if (!show) { $('rot').classList.add('hidden'); clearTimeout(rotT); rotT = 0; } }
 function btnBind(id, fn) { const e = typeof id === 'string' ? $(id) : id; if (!e) return; e.addEventListener('click', ev => { ev.preventDefault(); ensureAudio(); SFX.click(); fn(ev); }); }
 // ---------- title ----------
 function refreshTitle() { $('tMoney').textContent = '💰 ' + fmtMoney(SAVE.money); $('tLevel').textContent = '⭐ Lv ' + SAVE.level; $('tCity').textContent = '📍 ' + CITIES[SAVE.city].name; $('bDaily').textContent = '📅 Daily' + (SAVE.daily.day === todayKey() && SAVE.daily.done ? ' ✓' : ''); }
@@ -2754,7 +2770,7 @@ const SETS = [
   ['sound', 'Sound effects', [[true, 'On'], [false, 'Off']]], ['music', 'Music & radio', [[true, 'On'], [false, 'Off']]], ['radio', 'Radio station', RADIO.map((n, i) => [i, n])], ['vibe', 'Vibration', [[true, 'On'], [false, 'Off']]],
   ['ctrl', 'Steering', [['wheel', 'Wheel'], ['buttons', 'Buttons'], ['tilt', 'Tilt']]], ['sens', 'Steering sensitivity', [[.7, 'Low'], [1, 'Normal'], [1.35, 'High']]], ['gears', 'Gearbox', [['auto', 'Automatic'], ['manual', 'Manual']]],
   ['assist', 'Driving assists', [['full', 'Full'], ['light', 'Light'], ['off', 'Off (pro)']]], ['limiter', 'Speed limiter', [[true, 'On'], [false, 'Off']]], ['autobrake', 'Auto emergency brake', [[true, 'On'], [false, 'Off']]], ['abs', 'ABS', [[true, 'On'], [false, 'Off']]],
-  ['mirror', 'Rear-view mirror', [[true, 'On'], [false, 'Off']]], ['fatigue', 'Driver fatigue', [[false, 'Off'], [true, 'On']]], ['side', 'Drive on the', [['left', 'Left'], ['right', 'Right']]],
+  ['mirror', 'Mirror (landscape)', [[true, 'On'], [false, 'Off']]], ['mirrorP', 'Mirror (portrait)', [[false, 'Off'], [true, 'On']]], ['fatigue', 'Driver fatigue', [[false, 'Off'], [true, 'On']]], ['side', 'Drive on the', [['left', 'Left'], ['right', 'Right']]],
   ['units', 'Units', [['kmh', 'km/h'], ['mph', 'mph']]], ['gfx', 'Graphics', [['auto', 'Auto'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']]], ['showFps', 'Show FPS', [[false, 'Off'], [true, 'On']]]
 ];
 function buildSettings() {
@@ -2784,14 +2800,30 @@ function showResults() {
 }
 // ---------- controls ----------
 const KEYS = {}; const TILT = { raw: 0, ok: false };
+function readSafe() { const p = $('safeProbe'); if (!p) return; const cs = getComputedStyle(p); SAFE.t = parseFloat(cs.paddingTop) || 0; SAFE.r = parseFloat(cs.paddingRight) || 0; SAFE.b = parseFloat(cs.paddingBottom) || 0; SAFE.l = parseFloat(cs.paddingLeft) || 0; }
+function px(e, o) { const st = (typeof e === 'string' ? $(e) : e).style; st.left = st.right = st.top = st.bottom = 'auto'; for (const k in o) st[k] = Math.round(o[k]) + 'px'; }
 function layoutControls() {
-  const S = SAVE.settings; const w = innerWidth, h = innerHeight; const m = Math.min(w, h); const root = document.documentElement.style;
-  root.setProperty('--wh', Math.round(clamp(m * .42, 120, 210)) + 'px'); root.setProperty('--sb', Math.round(clamp(m * .2, 64, 96)) + 'px'); root.setProperty('--pw', Math.round(clamp(m * .16, 54, 84)) + 'px'); root.setProperty('--ph', Math.round(clamp(m * .3, 100, 160)) + 'px');
+  readSafe(); const S = SAVE.settings; const root = document.documentElement.style; const L = hudLayout(); const w = L.w, h = L.h;
+  root.setProperty('--wh', L.whs + 'px'); root.setProperty('--sb', L.sbt + 'px'); root.setProperty('--pw', L.pw + 'px'); root.setProperty('--ph', L.ph + 'px'); root.setProperty('--toastY', Math.round(L.toastY) + 'px');
   $('wheel').classList.toggle('hidden', S.ctrl !== 'wheel'); $('stL').classList.toggle('hidden', S.ctrl !== 'buttons'); $('stR').classList.toggle('hidden', S.ctrl !== 'buttons');
-  $('gUp').classList.toggle('hidden', S.gears !== 'manual'); $('gDn').classList.toggle('hidden', S.gears !== 'manual');
-  const L = hudLayout(); const ir = $('indRow'); ir.style.top = 'auto'; ir.style.bottom = Math.round(L.indBottom) + 'px'; ir.style.gap = Math.round(L.cw * .55) + 'px';
-  SAFE.t = 0; updRot();
+  const man = S.gears === 'manual'; $('gUp').classList.toggle('hidden', !man); $('gDn').classList.toggle('hidden', !man);
+  const B = L.sb + L.pad, Lf = L.sl + L.pad, Rt = L.sr + L.pad;
+  px('wheel', { left: Lf, bottom: B }); px('stL', { left: Lf, bottom: B + 4 }); px('stR', { left: Lf + L.sbt + 12, bottom: B + 4 });
+  px('gas', { right: Rt, bottom: B }); px('brake', { right: Rt + L.pw + 8, bottom: B });
+  const rowB = B + Math.round(L.ph * 1.1) + 8; px('dirBtn', { right: Rt, bottom: rowB }); px('horn', { right: Rt + 48 + 8, bottom: rowB });
+  px('gUp', { right: Rt, bottom: rowB + 40 }); px('gDn', { right: Rt + 48 + 8, bottom: rowB + 40 });
+  // small indicator arrows just above the steering control
+  const stW = S.ctrl === 'buttons' ? 2 * L.sbt + 12 : S.ctrl === 'wheel' ? L.whs : 120; const stH = S.ctrl === 'buttons' ? L.sbt + 4 : S.ctrl === 'wheel' ? L.whs : 0;
+  const ir = $('indRow'); px(ir, { left: Lf, bottom: B + stH + 6 }); ir.style.width = Math.max(stW, 100) + 'px';
+  px('topR', { right: L.sr + 8, top: L.st + 8 }); px('side', { right: L.sr + 8 - 6, top: L.st + 8 + L.btn + 6 });
+  // context action (refuel, auto-park…) sits just above the bottom controls, never mid-road
+  const ctxB = L.port ? B + Math.max(stH + 40, Math.round(L.ph * 1.1) + 8 + (man ? 80 : 42)) + 8 : L.h - L.spy + 22; const cx = L.port ? w / 2 : L.spx + L.spw / 2;
+  px('ctxBtn', { left: cx, bottom: ctxB }); px('ctx2', { left: cx, bottom: ctxB + 48 });
+  if (!$('tut').classList.contains('hidden')) TUTH = $('tut').offsetHeight + 5;
+  updRot();
 }
+let menuTO = 0; function toggleMenu(force) { const sd = $('side'); const open = force != null ? force : !sd.classList.contains('open'); sd.classList.toggle('open', open); $('bMenu').classList.toggle('on', open); clearTimeout(menuTO); if (open) menuTO = setTimeout(() => toggleMenu(false), 6000); }
+function menuPoke() { if ($('side').classList.contains('open')) { clearTimeout(menuTO); menuTO = setTimeout(() => toggleMenu(false), 6000); } }
 function hold(id, on, off) { const e = $(id); const ids = new Set(); e.addEventListener('pointerdown', ev => { ev.preventDefault(); ensureAudio(); try { e.setPointerCapture(ev.pointerId); } catch (x) { } ids.add(ev.pointerId); e.classList.add('down'); on(ev); }); const up = ev => { if (!ids.has(ev.pointerId)) return; ids.delete(ev.pointerId); if (!ids.size) { e.classList.remove('down'); off && off(ev); } }; e.addEventListener('pointerup', up); e.addEventListener('pointercancel', up); e.addEventListener('lostpointercapture', up); }
 function tap(id, fn) { const e = $(id); e.addEventListener('pointerdown', ev => { ev.preventDefault(); ev.stopPropagation(); ensureAudio(); e.classList.add('down'); setTimeout(() => e.classList.remove('down'), 120); fn(ev); }); }
 const WH = { id: null, a0: 0, base: 0, ang: 0, active: false };
@@ -2807,7 +2839,8 @@ function setupControls() {
   tap('bCam', cycleCam); tap('bPause', pauseGame); tap('bLights', () => { const T = G.truck; T.lights = !T.lights; SFX.click(); });
   tap('bHand', () => { G.in.hand = !G.in.hand; G.in.hand ? SFX.airPuff() : SFX.airHiss(.5); }); tap('bCruise', toggleCruise);
   tap('bRadio', () => { const S = SAVE.settings; S.radio = ((S.radio || 0) + 1) % RADIO.length; if (S.radio && !S.music) S.music = true; saveGame(); applyVolumes(); toast('📻 ' + RADIO[S.radio], 1.2); });
-  tap('bMirror', () => { SAVE.settings.mirror = !SAVE.settings.mirror; saveGame(); });
+  tap('bMirror', () => { const S = SAVE.settings; if (innerHeight > innerWidth) S.mirrorP = !S.mirrorP; else S.mirror = S.mirror === false; saveGame(); layoutControls(); menuPoke(); toast('🪞 Mirror ' + ((innerHeight > innerWidth ? S.mirrorP : S.mirror !== false) ? 'on' : 'off'), 1); });
+  tap('bMenu', () => toggleMenu()); ['bLights', 'bHaz', 'bHand', 'bCruise', 'bRadio'].forEach(id => $(id).addEventListener('pointerdown', menuPoke));
   tap('bIndL', () => ind(-1)); tap('bIndR', () => ind(1)); tap('bHaz', () => { const T = G.truck; T.hazard = !T.hazard; SFX.click(); });
   tap('ctxBtn', () => ctxAct(0)); tap('ctx2', () => ctxAct(1));
   // cab look-drag on the 3D view
@@ -2847,7 +2880,7 @@ function updateCtxUI() {
   else if (G.ctx && G.ctx.type === 'gas') { a = T.def.electric ? '🔌 CHARGE' : '⛽ REFUEL'; if (T.damage > .04) b = '🔧 Repair ' + fmtMoney(T.damage * 9000); else if (SAVE.settings.fatigue && G.fatigue > .25) b = '☕ Rest 30 min'; }
   else if (SAVE.settings.fatigue && G.fatigue > .7 && Math.abs(T.v) < .3) a = '☕ Rest 30 min';
   const dt_ = T.dir < 0 ? 'R' : 'D'; if (G.dirTxt !== dt_) { G.dirTxt = dt_; $('dirBtn').textContent = dt_; $('dirBtn').classList.toggle('on', T.dir < 0); }
-  $('bLights').classList.toggle('on', !!T.lights); $('bHand').classList.toggle('on', !!G.in.hand); $('bCruise').classList.toggle('on', T.cruise > 0); $('bHaz').classList.toggle('on', !!T.hazard); $('bIndL').classList.toggle('on', !!T.indL && G.blinkOn); $('bIndR').classList.toggle('on', !!T.indR && G.blinkOn); $('bMirror').classList.toggle('on', !!SAVE.settings.mirror);
+  $('bMirror').classList.toggle('on', innerHeight > innerWidth ? !!SAVE.settings.mirrorP : SAVE.settings.mirror !== false); $('bMenu').classList.toggle('has', !!(T.lights || G.in.hand || T.cruise > 0 || T.hazard)); $('bLights').classList.toggle('on', !!T.lights); $('bHand').classList.toggle('on', !!G.in.hand); $('bCruise').classList.toggle('on', T.cruise > 0); $('bHaz').classList.toggle('on', !!T.hazard); $('bIndL').classList.toggle('on', !!T.indL && G.blinkOn); $('bIndR').classList.toggle('on', !!T.indR && G.blinkOn); $('bMirror').classList.toggle('on', !!SAVE.settings.mirror);
   const key = a + '|' + b; if (key === lastCtx) return; lastCtx = key;
   $('ctxBtn').classList.toggle('hidden', !a); if (a) $('ctxBtn').textContent = a; $('ctx2').classList.toggle('hidden', !b); if (b) $('ctx2').textContent = b;
 }
