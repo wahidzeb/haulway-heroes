@@ -266,6 +266,9 @@ var ZT_N = 0, ZT_K = '', ZT_KT = 0, ZT_T = 0, ZT_S = 0, ZT_H = 0;
 function zt(n, p) { try { var k = n + JSON.stringify(p || 0), t = Date.now(); if (ZT_N > 150 || (k === ZT_K && t - ZT_KT < 500)) return; ZT_N++; ZT_K = k; ZT_KT = t; window.gtag && gtag('event', n, Object.assign({ game_id: 'haulway-heroes' }, p)); } catch (e) {} }
 function ztPlay(on) { try { var t = Date.now(); if (ZT_S) { ZT_T += (t - ZT_S) / 1e3; ZT_S = 0; } if (on) ZT_S = t; } catch (e) {} }
 function ztPing(r) { try { ztPlay(false); if (ZT_T >= 1) zt('play_time', { play_time: Math.round(ZT_T), reason: r }); ZT_T = 0; } catch (e) {} }
+var ZE = {}, ZE_N = 0;
+function zErr(e, where) { try { var m = String((e && (e.message || e.reason && e.reason.message || e.reason)) || e || 'err').slice(0, 90); var k = (where || '') + m; if (ZE[k] || ZE_N > 10) return; ZE[k] = 1; ZE_N++; zt('js_error', { msg: m, where: where || '' }); } catch (x) {} }
+try { window.addEventListener('error', function (e) { zErr(e.error || e.message, 'global'); }); window.addEventListener('unhandledrejection', function (e) { zErr(e.reason, 'promise'); }); } catch (e) {}
 try {
   document.addEventListener('visibilitychange', function () { if (document.hidden) { ZT_H = !!ZT_S; ztPing('page_hide'); } else if (ZT_H) { ZT_H = 0; ztPlay(true); } });
   document.addEventListener('click', function (e) { try { var a = e.target && e.target.closest && e.target.closest('a[href]'); if (!a) return; var u = new URL(a.href, location.href); if (!/^https?:$/.test(u.protocol)) return; if (u.host === location.host || /(^|\.)zaibgames\.com$/.test(u.host)) { if (u.pathname.indexOf('/haulway-heroes/') !== 0) zt('more_games_click', { link_url: u.href }); } else zt('outbound_click', { link_url: u.href, link_domain: u.host, outbound: true }); } catch (err) {} }, true);
@@ -320,7 +323,7 @@ function frustumPlanes(vp, out) {
 }
 function sphereVisible(pl, x, y, z, r) { for (let i = 0; i < 5; i++) if (pl[i * 4] * x + pl[i * 4 + 1] * y + pl[i * 4 + 2] * z + pl[i * 4 + 3] < -r) return false; return true; }
 // colors
-function hex(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
+function hex(h) { if (typeof h !== 'string') h = '#888888'; const n = parseInt(h.slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
 function mixc(a, b, t) { return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; }
 function scalec(a, s) { return [a[0] * s, a[1] * s, a[2] * s]; }
 // ---- save ----
@@ -332,7 +335,11 @@ const DEF_SAVE = () => ({
   settings: { sound: true, music: true, vibe: true, ctrl: 'wheel', gears: 'auto', units: 'kmh', gfx: 'auto', assist: 'full', side: 'left', fatigue: false, mirror: true, radio: 0, sens: 1, abs: true, limiter: true, autobrake: true, tilt0: 0 }
 });
 let SAVE = DEF_SAVE();
-function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s) { const d = DEF_SAVE(); SAVE = Object.assign(d, s); SAVE.settings = Object.assign(d.settings, s.settings || {}); SAVE.stats = Object.assign(d.stats, s.stats || {}); SAVE.daily = Object.assign(d.daily, s.daily || {}); if (!SAVE.trucks[SAVE.truck]) SAVE.truck = Object.keys(SAVE.trucks)[0] || 'rookie'; } } catch (e) { } }
+// Deep-merge a loaded save onto the default schema: keeps all progress, fills missing fields, drops wrong-typed values.
+function mergeSave(d, s) { if (!s || typeof s !== 'object' || Array.isArray(s)) return d; for (const k in s) { const v = s[k], dv = d[k]; if (v == null) continue; if (dv && typeof dv === 'object' && !Array.isArray(dv)) { if (typeof v === 'object' && !Array.isArray(v)) d[k] = mergeSave(dv, v); } else if (dv === undefined || typeof dv === typeof v || (dv === null)) { if (typeof v === 'number' && !isFinite(v)) continue; d[k] = v; } } return d; }
+function fixCust(c, def) { const base = { up: { engine: 0, tires: 0, brakes: 0, tank: 0 }, paint: def ? def.col : 0, paint2: def ? def.col2 : 7, decal: 0, lights: 0, horn: 0, extras: 0 }; const o = mergeSave(base, c && typeof c === 'object' ? c : {}); const idx = (v, n, f) => (Number.isInteger(v) && v >= 0 && v < n) ? v : f; o.paint = idx(o.paint, PAINTS.length, 0); o.paint2 = idx(o.paint2, PAINTS.length, 7); o.decal = idx(o.decal, DECALS.length, 0); o.lights = idx(o.lights, LIGHTS.length, 0); o.horn = idx(o.horn, HORNS.length, 0); o.extras = idx(o.extras, EXTRAS.length, 0); for (const u in o.up) if (!Number.isInteger(o.up[u]) || o.up[u] < 0) o.up[u] = 0; if (c && c.owned && typeof c.owned === 'object') { const ow = {}; for (const t of ['decal', 'lights', 'horn', 'extras']) ow[t] = Array.isArray(c.owned[t]) ? c.owned[t].filter(Number.isInteger) : [o[t], 0]; o.owned = ow; } else delete o.owned; return o; }
+function sanitizeSave(S) { const d = DEF_SAVE(); const tr = {}; if (S.trucks && typeof S.trucks === 'object') for (const id in S.trucks) { const def = TRUCKS.find(t => t.id === id); if (def && S.trucks[id]) tr[id] = fixCust(S.trucks[id], def); } if (!Object.keys(tr).length) tr.rookie = fixCust(d.trucks.rookie, TRUCKS[0]); S.trucks = tr; if (!S.trucks[S.truck]) S.truck = Object.keys(S.trucks)[0]; if (!S.trailers || typeof S.trailers !== 'object') S.trailers = {}; S.trailers.box = 1; if (!Number.isInteger(S.city) || S.city < 0 || S.city >= CITIES.length) S.city = 0; S.level = Math.max(1, S.level | 0); S.seed = (S.seed >>> 0) || 1; S.fuel = clamp(+S.fuel || 0, 0, 1); S.damage = clamp(+S.damage || 0, 0, 1); for (const k of ['money', 'xp', 'jobsDone', 'km', 'stars']) if (!isFinite(S[k])) S[k] = d[k]; return S; }
+function loadSave() { let s = null; try { s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { zErr(e, 'save_parse'); } try { SAVE = sanitizeSave(mergeSave(DEF_SAVE(), s)); } catch (e) { zErr(e, 'save_load'); SAVE = DEF_SAVE(); } }
 function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) { } }
 function todayKey() { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
 function fmtMoney(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
@@ -1647,6 +1654,7 @@ function finalizeBuckets(w) { for (const b of w.buckets.values()) { b.mesh = b.m
 const GEARS = [14.9, 11.7, 9.1, 7.1, 5.6, 4.4, 3.4, 2.7, 2.1, 1.66, 1.29, 1.0], FINAL = 3.2, WR = .52, REV_RATIO = 13;
 const fwd = h => [Math.sin(h), Math.cos(h)], rgt = h => [-Math.cos(h), Math.sin(h)];
 function makeTruck(def, cust, trailerType, cargo, livery) {
+  def = def || TRUCKS[0]; cust = cust || (typeof custFor === 'function' ? custFor(def) : {}); livery = Math.abs(livery | 0) % 6;
   const up = cust.up || { engine: 0, tires: 0, brakes: 0, tank: 0 };
   const T = {
     def, cust, info: buildTractor(def, cust), tr: trailerType ? buildTrailer(trailerType, livery || 0, cargo) : null, cargo,
@@ -2050,7 +2058,7 @@ function genJobs(city, seed) {
     const bio = BIOMES[CITIES[to].biome]; let wx = bio.wx[(r() * bio.wx.length) | 0]; const tod = [6.5, 8, 11, 14, 16.5, 18.6, 20, 22, 1][(r() * 9) | 0];
     const km = Math.round((3.6 + r() * 1.4) * lenMul * 10) / 10;
     const pay = Math.round((1200 + km * 700) * cg.pay * (own ? 1 : .75) * (1 + SAVE.level * .03) / 10) * 10;
-    jobs.push({ from: city, to, cargo: cg, trailer: cg.trailer, own, lvlReq: Math.max(own ? 1 : Math.ceil(tr.lvl * .6), CITIES[to].lvl), pay, km, seed: seedJ, lenMul, weather: wx, tod, livery: (seedJ >> 2) % 6, deadlineMul: 1.55 - r() * .2 });
+    jobs.push({ from: city, to, cargo: cg, trailer: cg.trailer, own, lvlReq: Math.max(own ? 1 : Math.ceil(tr.lvl * .6), CITIES[to].lvl), pay, km, seed: seedJ, lenMul, weather: wx, tod, livery: (seedJ >>> 2) % 6, deadlineMul: 1.55 - r() * .2 });
   }
   return jobs;
 }
@@ -2058,7 +2066,7 @@ function dailyJob() { const key = todayKey(); const seed = hashStr(key); const r
 // ---------- start ----------
 function startJob(job, mode) {
   G.state = 'loading'; showScreen('scrLoad'); $('loadTxt').textContent = mode === 'park' ? 'Preparing the yard…' : 'Generating route ' + (job ? CITIES[job.from].name + ' → ' + CITIES[job.to].name : '') + '…';
-  setTimeout(() => { try { startJobNow(job, mode); } catch (e) { console.error(e.stack || e); toast('Error: ' + e.message); G.state = 'menu'; showScreen('scrTitle'); } }, 60);
+  setTimeout(() => { try { startJobNow(job, mode); } catch (e) { console.warn(e); zErr(e, 'startJob'); G.state = 'menu'; showScreen('scrTitle'); toast('Couldn\'t start that job, try another'); } }, 60);
 }
 function startJobNow(job, mode) {
   G.mode = mode; G.job = job; G.quality = qualityPreset();
@@ -2072,7 +2080,7 @@ function startJobNow(job, mode) {
   const ttype = (mode === 'park' || !job) ? 'box' : job.trailer; const cargo = mode === 'park' || mode === 'free' ? null : job.cargo;
   G.truck = makeTruck(def, cust, mode === 'free' && !job ? 'box' : ttype, cargo, (job && job.livery) || 0);
   if (mode === 'free' || mode === 'park') G.truck.fuel = G.truck.tank * Math.max(.6, SAVE.fuel);
-  G.trailerCol = hex(['#f2f2f2', '#2a62d8', '#ffc21a', '#1d9a4a', '#c22a2a', '#333'][(job && job.livery) || 0]);
+  G.trailerCol = hex(['#f2f2f2', '#2a62d8', '#ffc21a', '#1d9a4a', '#c22a2a', '#333'][Math.abs((job && job.livery) | 0) % 6]);
   const T = G.truck;
   if (mode === 'park') { const lv = PARK_LEVELS[job.park]; const Y = W.endYard; const th = Y.th + lv.sh; const f = fwd(th), r = rgt(th); const rearX = Y.tx + f[0] * (-lv.sz) + r[0] * lv.sx, rearZ = Y.tz + f[1] * (-lv.sz) + r[1] * lv.sx; const ax = rearX - f[0] * T.tr.rear, az = rearZ - f[1] * T.tr.rear; const hx = ax + f[0] * T.Lt, hz = az + f[1] * T.Lt; placeTruck(T, hx - f[0] * T.c, hz - f[1] * T.c, th, th); G.phase = 'dock'; G.parkT = lv.t; }
   else { const Y = W.startYard; const p = Y.toW(laneCenterLat(0, 0), -14); placeTruck(T, p[0], p[1], Y.h, Y.h); }
@@ -3065,7 +3073,7 @@ function frame(t) {
     else if (G.state === 'menu' && !G.showroom) demoUpdate(dt);
     else if (G.state === 'paused' || G.state === 'result') audioEngine(null, false, dt);
     renderFrame(dt); drawHUD(dt); autoQuality(dt);
-  } catch (e) { console.error(e); G.err = (G.err || 0) + 1; if (G.err < 3) toast('⚠️ ' + e.message); }
+  } catch (e) { console.warn(e); zErr(e, 'frame'); }
 }
 // ---------- boot ----------
 function boot() {
