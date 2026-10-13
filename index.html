@@ -11,10 +11,10 @@
 <meta name="theme-color" content="#11151c">
 <meta name="description" content="Haulway Heroes by Zaib - a premium 3D truck driving game for your phone. Haul fragile glass, livestock, fuel, logs, cars and oversized loads across highways, mountain hairpins, deserts and snowy passes, back trailers into loading docks, and build your trucking career.">
 <title>Haulway Heroes by Zaib</title>
+<meta name="apple-mobile-web-app-title" content="Haulway Heroes">
 <link rel="manifest" href="/haulway-heroes/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/haulway-heroes/icons/apple-touch-icon.png">
 <script id="zg-sw">if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("/haulway-heroes/sw.js",{scope:"/haulway-heroes/"}).catch(function(){})});</script>
-<meta name="apple-mobile-web-app-title" content="Haulway Heroes">
 <link rel="canonical" href="https://zaibgames.com/haulway-heroes/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Games by Zaib">
@@ -434,6 +434,121 @@ const PARK_LEVELS = [
 let gl = null, GLX = {};
 const LIGHT_GLSL = `
 uniform vec3 uSunDir,uSunCol,uSky,uGnd,uFogCol,uCam,uHLP,uHLD;
+uniform float uFogD,uHL,uWet,uNight,uTime;
+float gPud=0.;
+vec3 envC(vec3 R){ float y=R.y;
+#ifndef HQ
+  return y>0.?mix(uFogCol,uSky*1.5,clamp(y*2.,0.,1.)):uFogCol*.6;
+#endif
+  vec3 hz=uFogCol*1.02; vec3 up=mix(hz,uSky*1.55+vec3(.02,.04,.08),smoothstep(0.,.55,y)); vec3 dn=mix(hz*.8,vec3(dot(uGnd,vec3(.333)))*.62,smoothstep(0.,-.25,y)); vec3 c=y>0.?up:dn; c+=uSunCol*pow(max(dot(R,uSunDir),0.),220.)*3.*(1.-uNight); return c; }
+vec3 tmap(vec3 c){ c=max(c,0.)*.96; return clamp((c*(2.51*c+.03))/(c*(2.43*c+.59)+.14),0.,1.); }
+vec3 shade(vec3 base,vec3 n,vec3 W,float gl,float flt){
+  vec3 V=normalize(uCam-W); float dist=length(uCam-W);
+  float up=step(.8,n.y)*(1.-step(.3,gl));
+  float wet=uWet*up; float pud=wet*gPud; base*=1.-.38*wet-.2*pud; gl=max(gl,wet*.55+pud*.35);
+  float ndl=max(dot(n,uSunDir),0.); ndl=mix(ndl,.6,flt);
+  float hemi=n.y*.5+.5; vec3 amb=mix(uGnd,uSky,hemi)*(.82+.18*hemi);
+  vec3 col=base*(amb+uSunCol*ndl);
+  vec3 L=uHLP-W; float d=length(L); L/=max(d,.001);
+  float cd=dot(-L,uHLD); float cone=smoothstep(.8,.965,cd)+.14*smoothstep(.5,.8,cd);
+  float att=110./(d*d*.13+45.);
+  col+=base*uHL*cone*(max(dot(n,L),0.)*.85+.15)*att*vec3(1.,.95,.84);
+  vec3 H=normalize(uSunDir+V); float sp=pow(max(dot(n,H),0.),6.+gl*120.)*gl*(1.2+gl*2.2);
+  col+=uSunCol*sp*(1.-uNight*.7);
+  float fr=pow(1.-max(dot(n,V),0.),4.); vec3 R=reflect(-V,n); vec3 env=envC(R);
+  if(gl>.85) col=mix(col,env*(base*1.25+.12),.82);
+  else col=mix(col,env*(1.-.25*pud),gl*(.06+.5*fr)+pud*(.18+.42*fr));
+  if(uHL>0.&&wet>0.){ vec3 Hh=normalize(L+V); col+=uHL*wet*(1.+pud*2.)*pow(max(dot(n,Hh),0.),60.)*cone*(220./(d*d*.15+40.))*vec3(1.,.93,.8); }
+  col=tmap(col*.9);
+  col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,1.1);
+  float f=1.-exp(-dist*dist*uFogD*uFogD);
+#ifdef HQ
+  vec3 fc=uFogCol+uSunCol*.22*pow(max(dot(-V,uSunDir),0.),6.)*(1.-uNight);
+#else
+  vec3 fc=uFogCol;
+#endif
+ 
+  return mix(col,fc,clamp(f,0.,1.));
+}`;
+
+const VS_MAIN = `attribute vec3 aP,aN,aC; attribute vec2 aM;
+uniform mat4 uVP,uMd; uniform vec3 uT1,uT2;
+varying vec3 vW,vN,vC; varying vec2 vM;
+void main(){ vec4 w=uMd*vec4(aP,1.); vW=w.xyz; vN=(uMd*vec4(aN,0.)).xyz; vec3 c=aC; if(c.r<-1.5)c=uT2*c.g; else if(c.r<-.5)c=uT1*c.g; vC=c; vM=aM; gl_Position=uVP*w; }`;
+const FS_MAIN_SRC = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec3 vW,vN,vC; varying vec2 vM; uniform vec4 uEm; uniform float uRev,uFlat,uDim,uAlpha,uDet;
+${LIGHT_GLSL}
+float hs(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float vnz(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hs(i),hs(i+vec2(1.,0.)),f.x),mix(hs(i+vec2(0.,1.)),hs(i+vec2(1.,1.)),f.x),f.y); }
+void main(){ vec3 n=normalize(vN); float em=vM.y; vec3 base=vC*uDim; float gls=vM.x;
+#if defined(GL_FRAGMENT_PRECISION_HIGH) && defined(HQ)
+  if(uDet>.5&&n.y>.85&&em<.5){ float dd=length(uCam-vW); vec2 p=vW.xz;
+    if(abs(gls-.86)<.006){ float t=uTime; vec2 q=p*.09; float a=vnz(q+vec2(t*.15,t*.07)), b=vnz(q*2.3-vec2(t*.11,-t*.13)); n=normalize(n+vec3(a-.5+(b-.5)*.6,0.,b-.5-(a-.5)*.4)*.22); base*=.85+.3*vnz(p*.02); }
+    else if(gls<.3){ float k=smoothstep(170.,20.,dd); if(k>0.){
+      float lum=dot(base,vec3(.333)); float sat=max(base.r,max(base.g,base.b))-min(base.r,min(base.g,base.b));
+      float m=vnz(p*.45), M=vnz(p*.06);
+      if(lum<.36&&sat<.06){ float fine=smoothstep(30.,4.,dd); float g1=vnz(p*7.3)-.5, g2=hs(floor(p*22.))-.5;
+        base*=1.+k*((m-.5)*.22+(M-.5)*.3)+fine*(g1*.16+g2*.12); gPud=smoothstep(.5,.82,vnz(p*.21+3.1)+(vnz(p*1.3)-.5)*.12)*k*.75;
+        float e=.25; vec2 gr=vec2(vnz(p*1.7+vec2(e,0.))-vnz(p*1.7-vec2(e,0.)),vnz(p*1.7+vec2(0.,e))-vnz(p*1.7-vec2(0.,e))); n=normalize(n+vec3(gr.x,0.,gr.y)*.35*fine); }
+      else if(base.g>base.r*1.05&&base.g>base.b*1.15){ float bl=vnz(p*3.1); base*=1.+k*((m-.5)*.3+(M-.5)*.36+(bl-.5)*.22*smoothstep(50.,6.,dd)); base=mix(base,base*vec3(1.25,1.1,.7),k*smoothstep(.55,.8,vnz(p*.11+7.))*.5); }
+      else base*=1.+k*((m-.5)*.18+(M-.5)*.26+(vnz(p*2.1)-.5)*.07*smoothstep(40.,8.,dd)); } }
+  }
+#endif
+  float e=0.; if(em>.5){ if(em<1.5)e=1.; else if(em<2.5)e=uNight; else if(em<3.5)e=uEm.x; else if(em<4.5)e=uEm.y; else if(em<5.5)e=uEm.z; else if(em<6.5)e=uEm.w; else e=uRev; if(em>2.5) base*=.55+.45*e; }
+  vec3 col=shade(base,n,vW,gls,uFlat);
+  if(e>0.){ float dist=length(uCam-vW); float f=1.-exp(-dist*dist*uFogD*uFogD*.5); col=mix(col,mix(min(vC*1.9,vec3(1.)),uFogCol,f),e); }
+  gl_FragColor=vec4(col,uAlpha); }`;
+const VS_TEX = `attribute vec3 aP,aN; attribute vec3 aU; uniform mat4 uVP,uMd; varying vec3 vW,vN; varying vec3 vU;
+void main(){ vec4 w=uMd*vec4(aP,1.); vW=w.xyz; vN=(uMd*vec4(aN,0.)).xyz; vU=aU; gl_Position=uVP*w; }`;
+const FS_TEX_SRC = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec3 vW,vN; varying vec3 vU; uniform sampler2D uTex; uniform float uDim;
+${LIGHT_GLSL}
+void main(){ vec4 t=texture2D(uTex,vU.xy); if(t.a<.4) discard; vec3 n=normalize(vN); vec3 base=t.rgb*uDim;
+  vec3 col=shade(base,n,vW,.25,0.); if(vU.z>2.5){ float lm=step(t.a,.97)*uNight; col=mix(col,vec3(1.,.8,.48)*1.15,lm*.9); gl_FragColor=vec4(col,1.); return; } float e=vU.z>1.5?uNight:vU.z; if(e>0.){ float dist=length(uCam-vW); float f=1.-exp(-dist*dist*uFogD*uFogD*.6); col=mix(col,mix(t.rgb*1.15,uFogCol,f),e*.85);} gl_FragColor=vec4(col,1.); }`;
+const FS_MAIN = '#define HQ\n' + FS_MAIN_SRC, FS_TEX = '#define HQ\n' + FS_TEX_SRC;
+const VS_SPR = `attribute vec3 aP; attribute vec2 aO; attribute vec4 aC; uniform mat4 uVP; uniform vec3 uR,uU; varying vec4 vC; varying vec2 vO;
+void main(){ vec3 p=aP+uR*aO.x+uU*aO.y; vC=aC; vO=sign(aO); gl_Position=uVP*vec4(p,1.); }`;
+const FS_SPR = `precision mediump float; varying vec4 vC; varying vec2 vO; uniform float uSoft;
+void main(){ float d=dot(vO,vO); float a=uSoft>.5?exp(-d*3.2):smoothstep(1.,.55,d); if(a<.01)discard; gl_FragColor=vec4(vC.rgb,vC.a*a); }`;
+const VS_LINE = `attribute vec3 aP; attribute float aA; uniform mat4 uVP; varying float vA; void main(){ vA=aA; gl_Position=uVP*vec4(aP,1.); }`;
+const FS_LINE = `precision mediump float; varying float vA; uniform vec3 uC; void main(){ gl_FragColor=vec4(uC,vA); }`;
+const VS_SKY = `attribute vec2 aP; varying vec2 vP; void main(){ vP=aP; gl_Position=vec4(aP,.99999,1.); }`;
+const FS_SKY = `precision mediump float; varying vec2 vP; uniform vec3 uF,uR,uU,uSunDir,uZen,uHor,uSunCol,uFogCol; uniform vec2 uTan; uniform float uNight,uCloud,uTime,uFogAmt,uSkyQ;
+float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float vn(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y); }
+float fbm(vec2 p){ float a=.5,s=0.; for(int i=0;i<5;i++){ if(float(i)>=uSkyQ)break; s+=vn(p)*a; p=p*2.07+vec2(1.7,9.2); a*=.5; } return s; }
+void main(){ vec3 d=normalize(uF+uR*vP.x*uTan.x+uU*vP.y*uTan.y);
+  float y=d.y; float yy=clamp(y,0.,1.);
+  vec3 c=mix(uHor,uZen,pow(yy,.5)); c=mix(c,uZen*.82,smoothstep(.45,1.,yy)*.5);
+  vec2 sxz=normalize(uSunDir.xz+vec2(1e-4)); float sa=max(dot(normalize(d.xz+vec2(1e-4)),sxz),0.);
+  c+=uSunCol*vec3(1.,.8,.6)*.16*pow(sa,3.)*(1.-yy)*(1.-uNight)*(1.-uFogAmt);
+  if(y<0.) c=mix(uHor,uFogCol,clamp(-y*6.,0.,1.));
+  float sd=max(dot(d,uSunDir),0.); c+=uSunCol*(pow(sd,900.)*5.+pow(sd,60.)*.35+pow(sd,8.)*.18)*(1.-uNight*.5)*(1.-uFogAmt*.6);
+  vec3 md=normalize(-uSunDir+vec3(0.,.25,0.)); float mdd=max(dot(d,md),0.); c+=vec3(.85,.9,1.)*(smoothstep(.9994,.9997,mdd)*1.2+pow(mdd,40.)*.08)*uNight;
+  if(uNight>0.&&y>0.){ vec2 sp=d.xz/(y+.3)*90.; float s=h21(floor(sp)); c+=vec3(step(.985,s)*uNight*(.5+.5*sin(uTime*3.+s*80.))*smoothstep(0.,.25,y))*(1.-uCloud*.8); }
+  if(y>0.){ vec2 cp=d.xz/(y+.1)*1.15+vec2(uTime*.012,uTime*.004);
+    float n=fbm(cp); float cov=1.-uCloud; float cl=smoothstep(cov*.62+.18,cov*.62+.42,n)*smoothstep(0.,.14,y);
+    float n2=fbm(cp+uSunDir.xz*.35); float lit=clamp((n-n2)*3.+.55,0.,1.);
+    vec3 dark=mix(uHor*.62,uZen*.45+vec3(.2),.4)*(1.-uNight*.8); vec3 bright=(uHor*.5+vec3(.62)+uSunCol*.35)*(1.-uNight*.85);
+    vec3 cc=mix(dark,bright,lit*(1.-uCloud*.45)); cc+=uSunCol*pow(sd,6.)*.45*(1.-uNight)*lit;
+    c=mix(c,cc,cl*.94);
+    float ci=vn(vec2(cp.x*.35,cp.y*3.)+3.)*vn(cp*.6); c+=vec3(.9,.92,1.)*smoothstep(.35,.7,ci)*.12*smoothstep(.05,.4,y)*(1.-uCloud)*(1.-uNight); }
+  c=mix(c,uFogCol,uFogAmt*(1.-smoothstep(0.,.5,y)));
+  c=mix(c,uFogCol,(1.-smoothstep(0.,.08,abs(y)))*.35);
+  gl_FragColor=vec4(c,1.); }`;
+const VS_SHD = `attribute vec3 aP; attribute vec3 aO; uniform mat4 uVP; varying vec3 vO; void main(){ vO=aO; gl_Position=uVP*vec4(aP,1.); }`;
+const FS_SHD = `precision mediump float; varying vec3 vO; uniform float uA; void main(){ vec2 q=abs(vO.xy); float a=(1.-smoothstep(.35,1.,q.x))*(1.-smoothstep(.35,1.,q.y)); gl_FragColor=vec4(0.,0.,0.,a*vO.z*uA); }`;
+// legacy shaders: fallback if the HD set fails to compile on an old GPU
+const LEG_LIGHT = `
+uniform vec3 uSunDir,uSunCol,uSky,uGnd,uFogCol,uCam,uHLP,uHLD;
 uniform float uFogD,uHL,uWet,uNight;
 vec3 shade(vec3 base,vec3 n,vec3 W,float gl,float flt){
   vec3 V=normalize(uCam-W); float dist=length(uCam-W);
@@ -454,17 +569,13 @@ vec3 shade(vec3 base,vec3 n,vec3 W,float gl,float flt){
   col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,1.12);
   float f=1.-exp(-dist*dist*uFogD*uFogD); return mix(col,uFogCol,clamp(f,0.,1.));
 }`;
-const VS_MAIN = `attribute vec3 aP,aN,aC; attribute vec2 aM;
-uniform mat4 uVP,uMd; uniform vec3 uT1,uT2;
-varying vec3 vW,vN,vC; varying vec2 vM;
-void main(){ vec4 w=uMd*vec4(aP,1.); vW=w.xyz; vN=(uMd*vec4(aN,0.)).xyz; vec3 c=aC; if(c.r<-1.5)c=uT2*c.g; else if(c.r<-.5)c=uT1*c.g; vC=c; vM=aM; gl_Position=uVP*w; }`;
-const FS_MAIN = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+const LEG_FS_MAIN = `#ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
 precision mediump float;
 #endif
 varying vec3 vW,vN,vC; varying vec2 vM; uniform vec4 uEm; uniform float uRev,uFlat,uDim,uAlpha,uDet;
-${LIGHT_GLSL}
+${LEG_LIGHT}
 float hs(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float vnz(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hs(i),hs(i+vec2(1.,0.)),f.x),mix(hs(i+vec2(0.,1.)),hs(i+vec2(1.,1.)),f.x),f.y); }
 void main(){ vec3 n=normalize(vN); float em=vM.y; vec3 base=vC*uDim;
@@ -475,25 +586,16 @@ void main(){ vec3 n=normalize(vN); float em=vM.y; vec3 base=vC*uDim;
   vec3 col=shade(base,n,vW,vM.x,uFlat);
   if(e>0.){ float dist=length(uCam-vW); float f=1.-exp(-dist*dist*uFogD*uFogD*.5); col=mix(col,mix(vC*1.9,uFogCol,f),e); }
   gl_FragColor=vec4(col,uAlpha); }`;
-const VS_TEX = `attribute vec3 aP,aN; attribute vec3 aU; uniform mat4 uVP,uMd; varying vec3 vW,vN; varying vec3 vU;
-void main(){ vec4 w=uMd*vec4(aP,1.); vW=w.xyz; vN=(uMd*vec4(aN,0.)).xyz; vU=aU; gl_Position=uVP*w; }`;
-const FS_TEX = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+const LEG_FS_TEX = `#ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
 precision mediump float;
 #endif
 varying vec3 vW,vN; varying vec3 vU; uniform sampler2D uTex; uniform float uDim;
-${LIGHT_GLSL}
+${LEG_LIGHT}
 void main(){ vec4 t=texture2D(uTex,vU.xy); if(t.a<.4) discard; vec3 n=normalize(vN); vec3 base=t.rgb*uDim;
   vec3 col=shade(base,n,vW,.25,0.); if(vU.z>2.5){ float lm=step(t.a,.97)*uNight; col=mix(col,vec3(1.,.8,.48)*1.15,lm*.9); gl_FragColor=vec4(col,1.); return; } float e=vU.z>1.5?uNight:vU.z; if(e>0.){ float dist=length(uCam-vW); float f=1.-exp(-dist*dist*uFogD*uFogD*.6); col=mix(col,mix(t.rgb*1.15,uFogCol,f),e*.85);} gl_FragColor=vec4(col,1.); }`;
-const VS_SPR = `attribute vec3 aP; attribute vec2 aO; attribute vec4 aC; uniform mat4 uVP; uniform vec3 uR,uU; varying vec4 vC; varying vec2 vO;
-void main(){ vec3 p=aP+uR*aO.x+uU*aO.y; vC=aC; vO=sign(aO); gl_Position=uVP*vec4(p,1.); }`;
-const FS_SPR = `precision mediump float; varying vec4 vC; varying vec2 vO; uniform float uSoft;
-void main(){ float d=dot(vO,vO); float a=uSoft>.5?exp(-d*3.2):smoothstep(1.,.55,d); if(a<.01)discard; gl_FragColor=vec4(vC.rgb,vC.a*a); }`;
-const VS_LINE = `attribute vec3 aP; attribute float aA; uniform mat4 uVP; varying float vA; void main(){ vA=aA; gl_Position=uVP*vec4(aP,1.); }`;
-const FS_LINE = `precision mediump float; varying float vA; uniform vec3 uC; void main(){ gl_FragColor=vec4(uC,vA); }`;
-const VS_SKY = `attribute vec2 aP; varying vec2 vP; void main(){ vP=aP; gl_Position=vec4(aP,.99999,1.); }`;
-const FS_SKY = `precision mediump float; varying vec2 vP; uniform vec3 uF,uR,uU,uSunDir,uZen,uHor,uSunCol,uFogCol; uniform vec2 uTan; uniform float uNight,uCloud,uTime,uFogAmt;
+const LEG_FS_SKY = `precision mediump float; varying vec2 vP; uniform vec3 uF,uR,uU,uSunDir,uZen,uHor,uSunCol,uFogCol; uniform vec2 uTan; uniform float uNight,uCloud,uTime,uFogAmt;
 float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
 float vn(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y); }
 void main(){ vec3 d=normalize(uF+uR*vP.x*uTan.x+uU*vP.y*uTan.y);
@@ -519,11 +621,12 @@ function initGL(canvas, aa) {
   if (!gl) return false;
   try {
     GLX.uint = gl.getExtension('OES_element_index_uint');
-    GLX.main = compile(VS_MAIN, FS_MAIN, ['aP', 'aN', 'aC', 'aM']);
-    GLX.tex = compile(VS_TEX, FS_TEX, ['aP', 'aN', 'aU']);
+    try { GLX.main = compile(VS_MAIN, FS_MAIN, ['aP', 'aN', 'aC', 'aM']); GLX.tex = compile(VS_TEX, FS_TEX, ['aP', 'aN', 'aU']); GLX.hd = true; GLX.mainH = GLX.main; GLX.texH = GLX.tex; try { GLX.mainL = compile(VS_MAIN, FS_MAIN_SRC, ['aP', 'aN', 'aC', 'aM']); GLX.texL = compile(VS_TEX, FS_TEX_SRC, ['aP', 'aN', 'aU']); } catch (e4) { GLX.mainL = GLX.mainH; GLX.texL = GLX.texH; } }
+    catch (e1) { console.log('HD shaders unavailable, using classic', e1 && e1.message); GLX.hd = false; GLX.main = compile(VS_MAIN, LEG_FS_MAIN, ['aP', 'aN', 'aC', 'aM']); GLX.tex = compile(VS_TEX, LEG_FS_TEX, ['aP', 'aN', 'aU']); }
     GLX.spr = compile(VS_SPR, FS_SPR, ['aP', 'aO', 'aC']);
     GLX.line = compile(VS_LINE, FS_LINE, ['aP', 'aA']);
-    GLX.sky = compile(VS_SKY, FS_SKY, ['aP']);
+    try { GLX.sky = compile(VS_SKY, FS_SKY, ['aP']); } catch (e2) { GLX.sky = compile(VS_SKY, LEG_FS_SKY, ['aP']); }
+    try { GLX.shd = compile(VS_SHD, FS_SHD, ['aP', 'aO']); } catch (e3) { GLX.shd = null; }
   } catch (e) { console.warn(e); gl = null; return false; }
   GLX.skyBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, GLX.skyBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   // sprite batch
@@ -623,7 +726,7 @@ function useProg(P) {
   if (R.prog === P) return; R.prog = P; gl.useProgram(P.p);
   for (let i = 0; i < 4; i++) { if (i < P.na) gl.enableVertexAttribArray(i); else gl.disableVertexAttribArray(i); }
   const u = P.u, L = R.L; if (!L) return; gl.uniformMatrix4fv(u.uVP, false, R.vp);
-  if (u.uSunDir) { gl.uniform3fv(u.uSunDir, L.sunDir); gl.uniform3fv(u.uSunCol, L.sunCol); gl.uniform3fv(u.uSky, L.sky); gl.uniform3fv(u.uGnd, L.gnd); gl.uniform3fv(u.uFogCol, L.fog); gl.uniform3fv(u.uCam, R.cam); gl.uniform3fv(u.uHLP, L.hlp); gl.uniform3fv(u.uHLD, L.hld); gl.uniform1f(u.uFogD, L.fogD); gl.uniform1f(u.uHL, L.hl); gl.uniform1f(u.uWet, L.wet); gl.uniform1f(u.uNight, L.night); }
+  if (u.uSunDir) { gl.uniform3fv(u.uSunDir, L.sunDir); gl.uniform3fv(u.uSunCol, L.sunCol); gl.uniform3fv(u.uSky, L.sky); gl.uniform3fv(u.uGnd, L.gnd); gl.uniform3fv(u.uFogCol, L.fog); gl.uniform3fv(u.uCam, R.cam); gl.uniform3fv(u.uHLP, L.hlp); gl.uniform3fv(u.uHLD, L.hld); gl.uniform1f(u.uFogD, L.fogD); gl.uniform1f(u.uHL, L.hl); gl.uniform1f(u.uWet, L.wet); gl.uniform1f(u.uNight, L.night); if (u.uTime) gl.uniform1f(u.uTime, L.time); }
   if (u.uDim) gl.uniform1f(u.uDim, 1);
   if (u.uFlat) gl.uniform1f(u.uFlat, 0);
   if (u.uDet) gl.uniform1f(u.uDet, 0);
@@ -640,7 +743,7 @@ function drawMesh(m, md, cull) {
   if (cull) { const x = md[0] * m.cx + md[4] * m.cy + md[8] * m.cz + md[12], y = md[1] * m.cx + md[5] * m.cy + md[9] * m.cz + md[13], z = md[2] * m.cx + md[6] * m.cy + md[10] * m.cz + md[14]; if (!sphereVisible(R.planes, x, y, z, m.r * 1.05)) return; }
   const P = m.tex ? GLX.tex : GLX.main; useProg(P);
   gl.uniformMatrix4fv(P.u.uMd, false, md || R.ident);
-  if (P.u.uDet) gl.uniform1f(P.u.uDet, (!md || md === R.ident) && (typeof G === 'undefined' || G.quality == null || G.quality > .6) ? 1 : 0);
+  if (P.u.uDet) gl.uniform1f(P.u.uDet, (!md || md === R.ident || m.water) && (typeof G === 'undefined' || G.quality == null || G.quality > .6) ? 1 : 0);
   gl.bindBuffer(gl.ARRAY_BUFFER, m.vbo); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ibo);
   if (m.tex) { gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 36, 0); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 36, 12); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 36, 24); }
   else { gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 44, 0); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 44, 12); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 44, 24); gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 44, 36); }
@@ -683,10 +786,25 @@ function drawSky(L, cam) {
   const P = GLX.sky; R.prog = null; gl.useProgram(P.p); gl.enableVertexAttribArray(0); for (let i = 1; i < 4; i++) gl.disableVertexAttribArray(i);
   const u = P.u; gl.uniform3fv(u.uF, cam.f); gl.uniform3fv(u.uR, cam.r); gl.uniform3fv(u.uU, cam.u); gl.uniform2f(u.uTan, cam.tx, cam.ty);
   gl.uniform3fv(u.uSunDir, L.sunDir); gl.uniform3fv(u.uZen, L.zen); gl.uniform3fv(u.uHor, L.hor); gl.uniform3fv(u.uSunCol, L.sunCol); gl.uniform3fv(u.uFogCol, L.fog);
-  gl.uniform1f(u.uNight, L.night); gl.uniform1f(u.uCloud, L.cloud); gl.uniform1f(u.uTime, L.time); gl.uniform1f(u.uFogAmt, L.fogAmt);
+  gl.uniform1f(u.uNight, L.night); gl.uniform1f(u.uCloud, L.cloud); gl.uniform1f(u.uTime, L.time); gl.uniform1f(u.uFogAmt, L.fogAmt); gl.uniform1f(u.uSkyQ, typeof G !== 'undefined' && G.quality < .6 ? 3 : 5);
   gl.bindBuffer(gl.ARRAY_BUFFER, GLX.skyBuf); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
   gl.depthMask(false); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.enable(gl.CULL_FACE); gl.enable(gl.DEPTH_TEST); gl.depthMask(true); R.dc++;
 }
+// soft shadow decals: verts [x,y,z,u,v,k]*4 per quad
+function drawSoftShadows(v, n, alpha) {
+  if (!n || !GLX.shd) return; const P = GLX.shd; R.prog = null; gl.useProgram(P.p); for (let i = 0; i < 4; i++) { if (i < 2) gl.enableVertexAttribArray(i); else gl.disableVertexAttribArray(i); }
+  gl.uniformMatrix4fv(P.u.uVP, false, R.vp); gl.uniform1f(P.u.uA, alpha);
+  const idx = []; for (let q = 0; q < n; q++) { const b = q * 4; idx.push(b, b + 1, b + 2, b, b + 2, b + 3); }
+  gl.bindBuffer(gl.ARRAY_BUFFER, GLX.dynBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STREAM_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, GLX.dynIdx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STREAM_DRAW);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.CULL_FACE);
+  gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -2);
+  gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0); R.dc++;
+  gl.disable(gl.POLYGON_OFFSET_FILL); gl.enable(gl.CULL_FACE); gl.depthMask(true); gl.disable(gl.BLEND);
+}
+// pick the HD or lite shader set for the current quality level (lite: no per-pixel detail/puddles, simpler reflections)
+function selectShaders(q) { if (!GLX.mainH) return; const lo = q < .6; const m = lo ? GLX.mainL : GLX.mainH, t = lo ? GLX.texL : GLX.texH; if (GLX.main !== m) { GLX.main = m; GLX.tex = t; R.prog = null; } }
 // ================= atlas: canvas-generated textures (signs, truck art, liveries) =================
 const ATL = { cv: null, tex: null, cells: {}, x: 0, y: 0, rowH: 0, S: 2048, H: 4096 };
 function atlasCell(name, w, h, draw) {
@@ -718,7 +836,7 @@ function truckArtPanel(c, w, h, variant) {
   for (let i = 0; i < 14; i++) { c.fillStyle = ART_COLS[i % 9]; c.beginPath(); c.arc(h * .3 + i * (w - h * .6) / 13, h * .26, 4, 0, TAU); c.fill(); c.beginPath(); c.arc(h * .3 + i * (w - h * .6) / 13, h * .74, 4, 0, TAU); c.fill(); }
 }
 function buildAtlas() {
-  const cv = document.createElement('canvas'); cv.width = ATL.S; cv.height = ATL.H; ATL.cv = cv; const ctx = ATL.ctx = cv.getContext('2d');
+  const cv = document.createElement('canvas'); cv.width = ATL.S; cv.height = ATL.H; ATL.cv = cv; const ctx = ATL.ctx = cv.getContext('2d', { willReadFrequently: true });
   ATL.x = ATL.y = ATL.rowH = 0; ATL.cells = {}; ctx.clearRect(0, 0, ATL.S, ATL.H);
   // speed limits
   for (const v of [30, 40, 50, 60, 70, 80, 90, 100, 110]) atlasCell('lim' + v, 128, 128, (c, w, h) => { c.fillStyle = '#fff'; c.beginPath(); c.arc(64, 64, 62, 0, TAU); c.fill(); c.strokeStyle = '#d0101a'; c.lineWidth = 14; c.beginPath(); c.arc(64, 64, 54, 0, TAU); c.stroke(); c.fillStyle = '#111'; c.font = '900 ' + (v >= 100 ? 46 : 56) + 'px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(v, 64, 68); });
@@ -764,6 +882,9 @@ function buildAtlas() {
     c.fillStyle = '#f7d21e'; rr(c, w / 2 - 34, h - 64, 68, 26, 4); c.fill(); c.strokeStyle = '#222'; c.lineWidth = 2; c.stroke(); c.fillStyle = '#222'; c.font = '900 17px Arial'; c.textAlign = 'center'; c.fillText('ZB 2026', w / 2, h - 45);
     c.fillStyle = 'rgba(30,40,60,.75)'; c.font = '900 italic 26px Arial'; c.fillText('HAULWAY', w / 2, 60); c.font = '700 13px Arial'; c.fillText('HEROES · LOGISTICS', w / 2, 80);
   });
+  atlasCell('gantry', 512, 192, (c, w, h) => { c.fillStyle = '#0d6b3a'; c.fillRect(0, 0, w, h); c.strokeStyle = '#fff'; c.lineWidth = 6; rr(c, 6, 6, w - 12, h - 12, 14); c.stroke();
+    c.fillStyle = '#fff'; c.font = '900 52px Arial'; c.textBaseline = 'middle'; c.textAlign = 'left'; c.fillText('E1  HAULWAY', 30, 62); c.font = '700 40px Arial'; c.fillText('Port Bayu · Kotaraya', 30, 132);
+    c.fillStyle = '#1a4fd0'; rr(c, w - 120, 28, 90, 64, 10); c.fill(); c.fillStyle = '#fff'; c.font = '900 40px Arial'; c.textAlign = 'center'; c.fillText('↑', w - 75, 62); });
   atlasCell('roof', 512, 128, (c, w, h) => { // trailer roof: ribbed aluminium with grime
     const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#aab1bb'); g.addColorStop(.5, '#d7dce3'); g.addColorStop(1, '#a3aab4'); c.fillStyle = g; c.fillRect(0, 0, w, h);
     for (let x = 4; x < w; x += 22) { c.fillStyle = 'rgba(40,46,56,.22)'; c.fillRect(x, 0, 3, h); c.fillStyle = 'rgba(255,255,255,.55)'; c.fillRect(x + 3, 0, 2, h); }
@@ -851,6 +972,26 @@ const C = {
 const SP = { paint: .55, chrome: .95, glass: .8, plastic: .2, matte: .03 };
 // ---------- wheels ----------
 function buildWheel(r, w, rimCol, dual) {
+  const b = new MB(); const n = 18;
+  const tw = dual ? w * 2.1 : w, o = tw / 2;
+  // tyre: tread band + bevelled sidewalls
+  b.cyl('x', 0, 0, 0, r, tw * .86, n, C.rubber, .05, 0, false);
+  for (const s of [1, -1]) b.cyl('x', s * (tw * .43 + tw * .035), 0, 0, r * .97, tw * .07, n, hex('#1e1e21'), .08, 0, false);
+  for (const s of [1, -1]) b.cyl('x', s * (o - .002), 0, 0, r * .93, .004, n, hex('#222326'), .1, 0, s > 0 ? 'f' : 'b');
+  if (dual) b.box(0, 0, 0, .02, r * 1.9, r * .3, C.black, .02);
+  // rim: dish, lip ring, hand holes, hub, lug nuts
+  const rc = rimCol || C.chrome;
+  b.cyl('x', o + .006, 0, 0, r * .64, .02, n, rc, .92, 0, 'f');
+  b.cyl('x', o + .014, 0, 0, r * .66, .025, n, mixc(rc, [1, 1, 1], .2), .97, 0, false, r * .6);
+  for (let i = 0; i < 8; i++) { const a = (i + .5) / 8 * TAU; b.box(o + .02, Math.cos(a) * r * .44, Math.sin(a) * r * .44, .01, .1, .1, hex('#2a2c30'), .2); }
+  b.cyl('x', o + .04, 0, 0, r * .3, .06, 12, mixc(rc, [0, 0, 0], .15), .9, 0, 'f', r * .26);
+  b.cyl('x', o + .09, 0, 0, r * .13, .05, 10, C.chrome, .97, 0, 'f', r * .09);
+  for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; b.cyl('x', o + .08, Math.cos(a) * r * .21, Math.sin(a) * r * .21, .022, .04, 6, C.chrome, .95, 0, 'f'); }
+  // tread blocks
+  for (let i = 0; i < 18; i++) { b.push().rx(i / 18 * TAU); b.box(0, r - .005, 0, tw * .84, .03, .06, C.black, .02); if (dual) b.box(0, r - .004, 0, .05, .032, .1, C.rubber, .02); b.pop(); }
+  return b.build();
+}
+function buildWheelLite(r, w, rimCol, dual) {
   const b = new MB(); const n = 14;
   const tw = dual ? w * 2.1 : w;
   b.cyl('x', 0, 0, 0, r, tw, n, C.rubber, .05, 0, true, r, C.rubber);
@@ -927,6 +1068,13 @@ function buildTractor(def, cust) {
     info.eye = [-.55 * (SAVE.settings.side === 'left' ? -1 : 1), 2.75, cabFront - .75];
     // marker / light bar
     if (lit.markers || st === 'cabover3') for (let i = -3; i <= 3; i++) { const c = lit.markers === 2 ? hex(ART_COLS[(i + 3) % 9]) : C.amber; b.box(i * .3, hi + (st === 'cabover3' ? .02 : .03), cabFront - slope - .2, .12, .06, .08, c, .5, 3); info.markers.push([i * .3, hi + .05, cabFront - slope - .2]); }
+    // ---- detail: grille surround + mesh, badge, headlamp bezels + DRL, wipers, frame, horns, fog lamps, corner deflectors
+    if (st !== 'electric') { b.box(0, 1.92, cabFront + .045, 1.7, .06, .06, C.chrome, SP.chrome); b.box(0, 1.19, cabFront + .045, 1.7, .05, .06, C.chrome, SP.chrome); for (const s of [1, -1]) b.box(s * .83, 1.55, cabFront + .045, .06, .78, .06, C.chrome, SP.chrome); for (let i = -6; i <= 6; i++) b.box(i * .12, 1.55, cabFront + .035, .025, .66, .02, C.black, .2); }
+    b.box(0, 2.0, cabFront + .06, .34, .1, .03, C.chrome, SP.chrome); b.cyl('z', 0, 2.0, cabFront + .07, .07, .02, 10, P2(1), .8, 0, 'f');
+    for (const s of [1, -1]) { b.box(s * .95, 1.28, cabFront + .05, .48, .28, .03, C.chrome, SP.chrome); b.cyl('z', s * .84, 1.28, cabFront + .07, .085, .03, 10, C.head, .9, 3, 'f'); b.cyl('z', s * 1.04, 1.28, cabFront + .07, .085, .03, 10, C.head, .9, 3, 'f'); b.box(s * .95, 1.13, cabFront + .065, .42, .03, .02, C.head, .8, 3);
+      b.box(s * .95, .78, cabFront + .22, .22, .12, .03, C.head, .7, 3); }
+    for (const s of [1, -1]) { b.cyl('z', s * .4, hi + .12, cabFront - slope - .55, .07, .7, 8, C.chrome, SP.chrome, 'f', .1); b.box(s * (hw + .01), (yb + hi) / 2 + .2, cabFront - .05, .04, hi - yb - .6, .14, P1(.8), SP.paint); }
+    for (const s of [1, -1]) { b.box(s * (hw + .02), 2.0, cabFront - .7, .02, .05, .95, C.black, .3); b.box(s * (hw + .02), 2.0 - .02 + (wy1 - .05 - 2.0), cabFront - .7, .02, .05, .95, C.black, .3); }
     frontZ = cabFront + .25;
     // exhaust
     if (!def.electric) { b.cyl('y', -1.0, (1.2 + hi + .4) / 2, cabBack - .25, .1, hi + .4 - 1.2, 10, C.chrome, SP.chrome, false); info.exh.push([-1.0, hi + .4, cabBack - .25]); }
@@ -964,6 +1112,12 @@ function buildTractor(def, cust) {
     for (const s of [1, -1]) { b.box(s * (hw + .25), 2.45, cabFront - .3, .5, .04, .04, C.chrome, .9); b.box(s * (hw + .48), 2.45, cabFront - .3, .07, .65, .25, C.chrome, .9); b.box(s * (hw + .44), 2.45, cabFront - .2, .02, .6, .02, C.glassL, .9); }
     if (lit.markers || heavy) for (let i = -2; i <= 2; i++) { const c = lit.markers === 2 ? hex(ART_COLS[(i + 2) % 9]) : C.amber; b.box(i * .3, hi + .08, cabFront - .5, .12, .06, .08, c, .5, 3); }
     info.eye = [-.55 * (SAVE.settings.side === 'left' ? -1 : 1), 2.95, cabFront - .9];
+    // detail: hood ornament + badge, grille surround, visor lights, horns, hood seam, chrome steps, wipers
+    b.box(0, ht - .1, frontZ - .22, .08, .12, .2, C.chrome, SP.chrome); b.box(0, ht - .32, frontZ - .1, .5, .12, .03, C.chrome, SP.chrome);
+    for (const s of [1, -1]) b.box(s * .78, (hb + ht) / 2 - .05, frontZ - .13, .08, ht - hb - .1, .06, C.chrome, SP.chrome);
+    b.box(0, ht - .02, (cabFront + frontZ) / 2 - .1, .04, .02, frontZ - cabFront - .4, C.dark, .3);
+    for (const s of [1, -1]) { b.cyl('z', s * .45, hi + .12, cabFront - .95, .07, .8, 8, C.chrome, SP.chrome, 'f', .11); }
+    for (const s of [1, -1]) { b.cyl('z', s * 1.1, 1.65, wb + .6, .19, .05, 12, C.chrome, SP.chrome, false); }
   } else if (st === 'art') {
     // Bedford-style short nose cab with decorated wooden crown
     cabFront = wb - .1; cabBack = cabFront - 1.9; const hi = 3.0; cabTop = 4.2; frontZ = wb + 1.25;
@@ -1030,17 +1184,34 @@ function buildTrailer(type, livery, cargo) {
   // side marker lights
   for (let z = rear + 1; z < front - 1; z += 3) for (const s of [1, -1]) b.box(s * (hw + .02), deckY - .1, z, .03, .08, .12, C.amber, .5, 2);
   const livCell = ATL.cells['liv' + livery];
+  if (type !== 'low') { b.box(0, .55, rear + .14, 2.3, .16, .12, C.dark, .3); for (let k = 0; k < 8; k++) b.box(-1.0 + k * .286, .55, rear + .075, .26, .1, .01, k % 2 ? C.white : C.red, .6, 2); for (const s of [1, -1]) b.box(s * .8, .8, rear + .3, .1, .45, .1, C.dark, .3);
+    for (const s of [1, -1]) { b.box(s * 1.0, .45, -2.0, .6, .6, .03, C.black, .05); b.box(s * 1.0, 1.02, 0, .62, .04, 4.0, hex('#2a2c30'), .4); }
+    if (type !== 'tank' && type !== 'box') for (const s of [1, -1]) for (const y of [.62, .95]) b.box(s * (hw - .1), y, (2.1 + Lt - 2.4) / 2, .04, .1, Lt - 4.5, C.lgrey, .7); }
   if (type === 'box') {
-    const h = 4.0; info.height = h;
-    b.box(0, (deckY + h) / 2, (front + rear) / 2, W, h - deckY, L, TINT2(1), .35);
-    for (let z = rear + .6; z < front; z += 1.2) for (const s of [1, -1]) b.box(s * (hw + .01), (deckY + h) / 2, z, .02, h - deckY - .05, .06, TINT2(.85), .3);
-    b.box(0, h + .01, (front + rear) / 2, W - .05, .02, L - .05, C.lgrey, .2);
-    // rear doors
-    b.box(0, (deckY + h) / 2, rear - .02, W - .1, h - deckY - .1, .04, TINT2(.92), .4); b.box(0, (deckY + h) / 2, rear - .05, .04, h - deckY - .1, .03, C.dark, .3);
-    for (const x of [-.6, .6]) b.box(x, (deckY + h) / 2, rear - .06, .05, h - deckY - .3, .04, C.chrome, .9);
+    const h = 4.0; info.height = h; const yc = (deckY + h) / 2, bh = h - deckY, zc = (front + rear) / 2; const alu = hex('#c9ced4'), aluD = hex('#9aa1a9');
+    b.box(0, yc, zc, W - .04, bh, L, TINT2(1), .5);
+    // logistic posts (aluminium ribs), horizontal panel seams, top + bottom rails, corner posts
+    for (let z = rear + .6; z < front - .3; z += 1.2) for (const s of [1, -1]) b.box(s * (hw - .005), yc, z, .03, bh - .3, .07, TINT2(.82), .45);
+    for (const y of [deckY + bh * .34, deckY + bh * .68]) for (const s of [1, -1]) b.box(s * (hw - .012), y, zc, .012, .025, L - .3, TINT2(.88), .4);
+    for (const s of [1, -1]) { b.box(s * (hw + .005), h - .07, zc, .05, .14, L, alu, .8); b.box(s * (hw + .005), deckY + .08, zc, .06, .16, L, aluD, .6); }
+    for (const z of [front - .04, rear + .04]) for (const s of [1, -1]) b.box(s * (hw - .03), yc, z, .1, bh, .1, alu, .85);
+    b.box(0, h - .05, front - .03, W, .1, .08, alu, .8); b.box(0, deckY + .07, front - .03, W, .14, .08, aluD, .6);
+    b.box(0, h + .01, zc, W - .05, .02, L - .05, C.lgrey, .2);
+    // conspicuity tape (red/white) along the bottom rail, glows at night
+    for (let z = rear + .4, k = 0; z < front - .4; z += .5, k++) for (const s of [1, -1]) b.box(s * (hw + .035), deckY + .08, z, .01, .06, .45, k % 2 ? C.white : C.red, .6, 2);
+    // rear doors: frame, seams, 4 lock bars with handles, hinges, top marker bar, header
+    b.box(0, yc, rear - .02, W - .1, bh - .1, .04, TINT2(.92), .45); b.box(0, yc, rear - .05, .04, bh - .1, .03, C.dark, .3);
+    b.box(0, h - .1, rear - .06, W, .16, .06, alu, .8); b.box(0, deckY + .1, rear - .06, W, .18, .06, aluD, .6); for (const s of [1, -1]) b.box(s * (hw - .04), yc, rear - .06, .08, bh, .06, alu, .8);
+    for (const x of [-.85, -.28, .28, .85]) { b.cyl('y', x, yc, rear - .085, .022, bh - .35, 6, C.chrome, .95, 0, false); b.box(x + (x > 0 ? -.07 : .07), yc - .35, rear - .1, .14, .05, .04, C.dark, .4); for (const y of [deckY + .45, h - .45]) b.box(x, y, rear - .09, .08, .1, .05, aluD, .7); }
+    for (const s of [1, -1]) for (const y of [deckY + .6, yc, h - .6]) b.box(s * (hw - .05), y, rear - .095, .1, .16, .04, C.dark, .4);
+    for (let i = -3; i <= 3; i++) b.box(i * .25, h - .1, rear - .1, .1, .06, .03, i === 0 || Math.abs(i) === 3 ? C.tail : C.amber, .6, 2);
+    // aero side skirts
+    for (const s of [1, -1]) { b.box(s * (hw - .08), deckY - .45, (Lt - 2.2 + 2.2) / 2, .03, .7, Lt - 4.4, hex('#3a3d42'), .25); }
     if (ATL.cells.roof) t.tquad([-hw + .03, h + .025, rear + .03], [-hw + .03, h + .025, front - .03], [hw - .03, h + .025, front - .03], [hw - .03, h + .025, rear + .03], ATL.cells.roof, 0);
-    if (ATL.cells.rear) t.tquad([hw - .06, deckY + .06, rear - .085], [-hw + .06, deckY + .06, rear - .085], [-hw + .06, h - .06, rear - .085], [hw - .06, h - .06, rear - .085], ATL.cells.rear, 0);
-    if (livCell) { t.tquad([hw + .03, deckY + .2, front - .4], [hw + .03, deckY + .2, rear + .4], [hw + .03, h - .2, rear + .4], [hw + .03, h - .2, front - .4], livCell, 0); t.tquad([-hw - .03, deckY + .2, rear + .4], [-hw - .03, deckY + .2, front - .4], [-hw - .03, h - .2, front - .4], [-hw - .03, h - .2, rear + .4], livCell, 0); }
+    if (ATL.cells.rear) t.tquad([hw - .06, deckY + .2, rear - .1], [-hw + .06, deckY + .2, rear - .1], [-hw + .06, h - .2, rear - .1], [hw - .06, h - .2, rear - .1], ATL.cells.rear, 0);
+    if (livCell) { t.tquad([hw + .03, deckY + .25, front - .4], [hw + .03, deckY + .25, rear + .4], [hw + .03, h - .2, rear + .4], [hw + .03, h - .2, front - .4], livCell, 0); t.tquad([-hw - .03, deckY + .25, rear + .4], [-hw - .03, deckY + .25, front - .4], [-hw - .03, h - .2, front - .4], [-hw - .03, h - .2, rear + .4], livCell, 0); }
+    // reefer unit on the front wall for some liveries
+    if (livery % 2 === 1) { b.box(0, h - .75, front + .2, 1.9, 1.3, .4, hex('#e9ebee'), .45); b.box(0, h - .75, front + .41, 1.6, .9, .02, hex('#30343a'), .3); for (let i = 0; i < 6; i++) b.box(0, h - 1.1 + i * .14, front + .43, 1.5, .03, .02, C.black, .2); b.box(.6, h - .25, front + .41, .3, .12, .02, hex('#2ad06a'), .5, 2); }
   } else if (type === 'live') {
     const h = 3.9; info.height = h; b.box(0, deckY + .05, (front + rear) / 2, W, .1, L, C.grey, .3);
     b.box(0, h, (front + rear) / 2, W, .08, L, TINT2(1), .35);
@@ -1050,16 +1221,23 @@ function buildTrailer(type, livery, cargo) {
     // cows
     for (let i = 0; i < 6; i++) { const z = rear + 1.4 + i * (L - 2.6) / 5, x = (i % 2 ? .4 : -.4); const cc = i % 3 === 0 ? hex('#5a3a2a') : i % 3 === 1 ? C.white : hex('#2a2422'); b.box(x, deckY + 1.0, z, .7, .75, 1.5, cc, .1); b.box(x, deckY + 1.25, z + .9, .4, .45, .5, cc, .1); b.box(x, deckY + 1.1, z + 1.15, .3, .25, .1, hex('#e8a8a0'), .2); for (const dz of [-.5, .5]) for (const dx of [-.22, .22]) b.box(x + dx, deckY + .35, z + dz, .12, .6, .12, cc, .1); }
   } else if (type === 'tank') {
-    const r = 1.2, cy = deckY + r + .05; info.height = cy + r + .2;
-    b.cyl('z', 0, cy, (front + rear) / 2 - .2, r, L - 1.2, 20, C.chrome, .85, 0, true);
-    b.sphere(0, cy, front - .8, r, 16, C.chrome, .85, 0, 1); b.sphere(0, cy, rear + .8, r, 16, C.chrome, .85, 0, 1);
-    for (const z of [rear + 2, (front + rear) / 2, front - 2]) b.cyl('z', 0, cy, z, r + .03, .2, 20, TINT2(1), .5, 0, false);
-    b.box(0, cy + r + .03, (front + rear) / 2, .7, .06, L - 2.5, C.grey, .3);
-    for (let z = rear + 2; z < front - 2; z += 2.5) b.cyl('y', 0, cy + r + .08, z, .3, .12, 10, C.steel, .6, 0, true);
-    b.box(0, deckY - .05, (front + rear) / 2, 1.2, .2, L - .6, C.dark, .2);
-    for (let y = .6; y < cy + r; y += .3) b.box(.3, y, rear + .1, .5, .04, .04, C.steel, .5);
-    // hazard placard
-    b.box(0, cy, rear + .25 - .02, .5, .5, .02, hex('#ff7a1a'), .4); b.box(0, cy + .7, rear + .4, .7, .3, .02, hex('#ff7a1a'), .4);
+    const r = 1.2, cy = deckY + r + .05; info.height = cy + r + .35; const zc = (front + rear) / 2 - .2, len = L - 1.6; const steel = hex('#e6eaef');
+    b.cyl('z', 0, cy, zc, r, len, 30, steel, .97, 0, false);
+    for (const [z, s] of [[zc + len / 2, 1], [zc - len / 2, -1]]) { b.push().tr(0, cy, z).sc(1, 1, .34); b.sphere(0, 0, 0, r, 22, steel, .97, 0, 1); b.pop(); b.cyl('z', 0, cy, z, r + .03, .12, 30, hex('#b9c0c8'), .9, 0, false); }
+    for (let k = 1; k < 5; k++) { const z = zc - len / 2 + k * len / 5; b.cyl('z', 0, cy, z, r + .025, .14, 30, TINT2(1), .7, 0, false); }
+    // walkway with rails + manholes
+    b.box(0, cy + r + .03, zc, .8, .05, len - .6, hex('#7d838b'), .4); for (let z = zc - len / 2 + .5; z < zc + len / 2 - .4; z += .35) b.box(0, cy + r + .06, z, .78, .015, .05, C.dark, .2);
+    for (const s of [1, -1]) { b.box(s * .45, cy + r + .62, zc, .04, .04, len - .8, C.chrome, .95); for (let z = zc - len / 2 + .5; z <= zc + len / 2 - .4; z += 1.6) b.box(s * .45, cy + r + .32, z, .04, .6, .04, C.chrome, .95); }
+    for (let z = zc - len / 2 + 1.4; z < zc + len / 2 - 1; z += 2.4) { b.cyl('y', 0, cy + r + .1, z, .32, .14, 14, hex('#aab1b9'), .9, 0, true); b.cyl('y', 0, cy + r + .19, z, .18, .06, 10, C.dark, .4, 0, true); }
+    // hose tubes along the sides, valve cabinet, spill box, ladder
+    for (const s of [1, -1]) { b.cyl('z', s * (r * .78), deckY + .2, zc, .1, len - 2, 10, C.chrome, .95, 0, true); b.box(s * (r * .72), deckY - .05, zc + 1.2, .5, .7, 2.2, hex('#d8dce0'), .6); b.box(s * (r * .72 + .26), deckY - .05, zc + 1.2, .01, .55, 2.0, C.dark, .3); }
+    for (let i = 0; i < 5; i++) b.box(0, deckY - .25, zc - 1.4 + i * .7, .18, .18, .18, hex('#d02a2a'), .5);
+    for (const s of [1, -1]) b.cyl('y', s * .3, cy, rear + .25, .03, r * 2.1, 6, C.chrome, .95, 0, false); for (let y = cy - r + .2; y < cy + r + .2; y += .3) b.box(0, y, rear + .25, .6, .04, .04, C.chrome, .9);
+    b.box(0, deckY - .05, zc, 1.2, .25, L - .6, C.dark, .2);
+    // orange stripe + placards
+    for (const s of [1, -1]) b.box(s * (r + .003), cy - .55, zc, .01, .12, len - .4, hex('#ff7a1a'), .5);
+    b.box(0, cy, rear + .58 - .02, .5, .5, .02, hex('#ff7a1a'), .4); b.box(0, cy + .7, rear + .5, .7, .3, .02, hex('#ff7a1a'), .4);
+    if (livCell) for (const s of [1, -1]) { const x = s * (r + .02); if (s > 0) t.tquad([x, cy - .35, zc + len * .32], [x, cy - .35, zc - len * .32], [x, cy + .35, zc - len * .32], [x, cy + .35, zc + len * .32], livCell, 0); else t.tquad([x, cy - .35, zc - len * .32], [x, cy - .35, zc + len * .32], [x, cy + .35, zc + len * .32], [x, cy + .35, zc - len * .32], livCell, 0); }
   } else if (type === 'logs') {
     info.height = 3.2; b.box(0, deckY + .05, (front + rear) / 2, W, .12, L, C.grey, .3); b.box(0, deckY + 1.0, front - .05, W, 1.8, .1, TINT2(1), .4);
     for (let z = rear + .4; z < front; z += 2.4) for (const s of [1, -1]) b.box(s * (hw - .05), deckY + 1.1, z, .1, 2.0, .1, C.dark, .3);
@@ -1140,10 +1318,33 @@ function propTree(b, kind, x, y, z, s, rnd) {
   if (kind === 'pine' || kind === 'snowpine') { b.cyl('y', 0, .8, 0, .18, 1.6, 6, C.wood, .05, 0, false); const g = kind === 'snowpine' ? hex('#2a5a3a') : hex('#2a6a30'); for (let i = 0; i < 3; i++) { b.cyl('y', 0, 1.6 + i * 1.3, 0, 1.6 - i * .4, 2.0, 7, g, .05, 0, 'b', 0); if (kind === 'snowpine') b.cyl('y', 0, 2.2 + i * 1.3, 0, (1.6 - i * .4) * .55, .9, 7, C.white, .1, 0, 'b', 0); } }
   else if (kind === 'broad') { b.cyl('y', 0, 1.0, 0, .2, 2.0, 6, C.wood, .05, 0, false); const g = mixc(hex('#3a8a2a'), hex('#6aaa30'), rnd()); b.sphere(0, 2.8, 0, 1.6, 7, g, .05, 0, .85); b.sphere(.7, 2.3, .4, 1.0, 6, mixc(g, [0, 0, 0], .1), .05); }
   else if (kind === 'palm') { let px = 0, py = 0; for (let i = 0; i < 5; i++) { b.cyl('y', px, py + .7, 0, .2 - i * .02, 1.45, 6, hex('#8a6a40'), .05, 0, false); py += 1.4; px += .12; } for (let i = 0; i < 7; i++) { b.push().tr(px, py, 0).ry(i / 7 * TAU).rx(.5); b.tbox(0, 0, 1.3, .9, .05, 2.6, .2, .4, 0, .6, hex('#3a9a30'), .05); b.pop(); } b.sphere(px, py, 0, .3, 6, hex('#6a4a20'), .1); }
+  else if (kind === 'oak') { b.cyl('y', 0, 1.3, 0, .26, 2.6, 7, hex('#5a4128'), .05, 0, false, .18); const g = mixc(hex('#2f6e26'), hex('#5a8f2c'), rnd()); for (let k = 0; k < 5; k++) { const a = k / 5 * TAU + rnd(), rr = .9 + rnd() * .5; b.sphere(Math.cos(a) * 1.0, 3.0 + rnd() * .9, Math.sin(a) * 1.0, rr * 1.15, 7, mixc(g, k % 2 ? [0, 0, 0] : [.9, 1, .5], .12), .05, 0, .82); } b.sphere(0, 3.9, 0, 1.4, 7, mixc(g, [1, 1, .6], .1), .05, 0, .8); }
+  else if (kind === 'poplar') { b.cyl('y', 0, .8, 0, .16, 1.6, 6, hex('#5a4630'), .05, 0, false); const g = mixc(hex('#3a7a2c'), hex('#6a9a34'), rnd()); b.sphere(0, 4.2, 0, 1.05, 7, g, .05, 0, 3.2); b.sphere(.2, 3.0, .1, .9, 6, mixc(g, [0, 0, 0], .12), .05, 0, 1.8); }
+  else if (kind === 'birch') { b.cyl('y', 0, 2.0, 0, .13, 4.0, 6, hex('#e6e2d8'), .1, 0, false, .09); for (let k = 0; k < 4; k++) b.box(0, .6 + k * .9, 0, .27, .05, .27, C.black, .05); const g = mixc(hex('#7aa83a'), hex('#a8c050'), rnd()); b.sphere(0, 4.3, 0, 1.2, 7, g, .05, 0, 1.4); b.sphere(.5, 3.6, .3, .8, 6, mixc(g, [0, 0, 0], .1), .05); }
+  else if (kind === 'flowers') { const cs = ['#ffd23f', '#ff5a7a', '#ffffff', '#b06aff', '#ff8a2a']; const c0 = hex(cs[(rnd() * cs.length) | 0]); b.sphere(0, .3, 0, .7, 5, mixc(hex('#3a7a2a'), hex('#5a9a30'), rnd()), .05, 0, .5); for (let k = 0; k < 6; k++) { const a = rnd() * TAU, r0 = rnd() * .55; b.box(Math.cos(a) * r0, .55, Math.sin(a) * r0, .14, .1, .14, c0, .2); } }
+  else if (kind === 'grass') { const g = typeof GRASSC !== 'undefined' && GRASSC ? mixc(GRASSC, hex('#9aa040'), rnd() * .3) : mixc(hex('#5a8a2a'), hex('#a0a040'), rnd()); for (let k = 0; k < 5; k++) { b.push().ry(k / 5 * PI + rnd() * .4); b.tri([-.35, 0, 0], [.35, 0, 0], [(rnd() - .5) * .3, .55 + rnd() * .4, .05], g, .05); b.tri([.35, 0, 0], [-.35, 0, 0], [(rnd() - .5) * .3, .55 + rnd() * .4, -.05], g, .05); b.pop(); } }
   else if (kind === 'bush') { b.sphere(0, .5, 0, .9, 6, mixc(hex('#3a7a2a'), hex('#5a9a30'), rnd()), .05, 0, .7); }
   else if (kind === 'cactus') { const g = hex('#4a8a3a'); b.cyl('y', 0, 1.4, 0, .28, 2.8, 7, g, .1); b.cyl('y', .55, 1.8, 0, .18, 1.2, 6, g, .1); b.cyl('x', .3, 1.25, 0, .16, .6, 6, g, .1); b.cyl('y', -.5, 1.6, 0, .16, 1.0, 6, g, .1); b.cyl('x', -.28, 1.15, 0, .15, .5, 6, g, .1); }
   else if (kind === 'rock') { const c = mixc(hex('#8a8070'), hex('#6a6058'), rnd()); b.tbox(0, .6, 0, 2.4, 1.3, 2.0, 1.2, 1.1, .2, .1, c, .05); b.tbox(.9, .4, .6, 1.2, .8, 1.1, .5, .6, 0, 0, c, .05); }
   else if (kind === 'dry') { b.cyl('y', 0, .7, 0, .1, 1.4, 5, hex('#6a5030'), .05); b.sphere(0, 1.4, 0, .7, 5, hex('#9a8a50'), .05, 0, .6); }
+  b.pop();
+}
+// small house / farm building appended into builder b (local +z faces the road)
+function propHouse(b, x, y, z, yaw, rnd, big) {
+  const wd = big ? 9 + rnd() * 4 : 6 + rnd() * 3, dp = big ? 8 + rnd() * 3 : 5.5 + rnd() * 2.5, ht = big ? 5.8 : 3.0 + rnd() * .6;
+  const walls = ['#efe6d6', '#e8d2b0', '#d9e2e6', '#f2e8c8', '#e0c8b8', '#cfd8c0'], roofs = ['#a23a2a', '#6a3a2a', '#3a4a5a', '#8a5a3a', '#2f5a6a'];
+  const wc = hex(walls[(rnd() * walls.length) | 0]), rc = hex(roofs[(rnd() * roofs.length) | 0]);
+  b.push().tr(x, y, z).ry(yaw);
+  b.box(0, -.6, 0, wd + .4, 1.4, dp + .4, hex('#8a8478'), .05); b.box(0, ht / 2, 0, wd, ht, dp, wc, .06);
+  const rh = dp * .38, oh = .45; // gable roof
+  b.quad([-wd / 2 - oh, ht, dp / 2 + oh], [wd / 2 + oh, ht, dp / 2 + oh], [wd / 2 + oh, ht + rh, 0], [-wd / 2 - oh, ht + rh, 0], rc, .15);
+  b.quad([wd / 2 + oh, ht, -dp / 2 - oh], [-wd / 2 - oh, ht, -dp / 2 - oh], [-wd / 2 - oh, ht + rh, 0], [wd / 2 + oh, ht + rh, 0], rc, .15);
+  for (const s of [1, -1]) b.tri([s * wd / 2, ht, s * dp / 2], [s * wd / 2, ht, -s * dp / 2], [s * wd / 2, ht + rh, 0], wc, .06);
+  b.box(0, 1.05, dp / 2 + .03, 1.0, 2.1, .06, hex('#5a3a22'), .2); b.box(0, 2.25, dp / 2 + .25, 1.6, .08, .6, rc, .2);
+  const nw = Math.max(1, Math.round(wd / 3)); for (let i = 0; i < nw; i++) { const wx = -wd / 2 + (i + .5) * wd / nw; if (Math.abs(wx) < .9) continue; for (let f = 0; f < (big ? 2 : 1); f++) { const wy = 1.6 + f * 2.4; b.box(wx, wy, dp / 2 + .03, 1.0, 1.0, .05, hex('#2a3a48'), .8, 2); b.box(wx, wy, dp / 2 + .06, 1.1, .06, .04, C.white, .2); } }
+  for (const s of [1, -1]) b.box(s * wd / 2 + s * .03, 1.6, 0, .05, 1.0, 1.0, hex('#2a3a48'), .8, 2);
+  if (rnd() < .6) b.box(wd * .25, ht + rh * .6, -dp * .1, .6, 1.4, .6, hex('#8a5a4a'), .1);
+  if (!big && rnd() < .5) { b.box(wd / 2 + 2.2, .9, -dp * .2, 2.6, 1.8, 3.4, hex('#7a6a5a'), .1); }
   b.pop();
 }
 // ================= world: route generation, terrain, road, scenery, events, yards =================
@@ -1251,6 +1452,7 @@ function buildWorld(opt) {
   buildTerrain(w);
   buildRoad(w);
   buildScenery(w, seed);
+  try { buildExtras(w, seed); } catch (e) { console.log('extras', e && e.message); }
   buildEventMeshes(w);
   finalizeBuckets(w);
   w.buildMs = performance.now() - t0;
@@ -1405,6 +1607,7 @@ function buildTerrain(w) {
 // ---- road ribbon ----
 function buildRoad(w) {
   const P = w.P, n = w.n; const asph = hex('#3a3c40'), asph2 = hex('#45474b'), sh = hex('#6a645a'), wl = hex('#ececec'), yl = hex('#f0c020'), curb = hex('#b8b4ac'), walk = hex('#a8a49a');
+  const nearEv = (i, rad) => w.events.some(e => (e.type === 'gas' || e.type === 'weigh' || e.type === 'toll' || e.type === 'light') && Math.abs(e.i - i) * STEP < rad);
   const pt = (i, lat, dy) => { const rx = -Math.cos(P.h[i]), rz = Math.sin(P.h[i]); return [P.x[i] + rx * lat, P.y[i] + (dy || 0), P.z[i] + rz * lat]; };
   const strip = (i, l0, l1, dy0, dy1, col, sp) => { if (l0 > l1) { let t = l0; l0 = l1; l1 = t; t = dy0; dy0 = dy1; dy1 = t; } const b = bucketOf((P.x[i] + P.x[i + 1]) / 2, (P.z[i] + P.z[i + 1]) / 2).mb; b.quad(pt(i, l0, dy0), pt(i, l1, dy1), pt(i + 1, l1, dy1), pt(i + 1, l0, dy0), col, sp || .05); };
   // quads: in order a(i,l1) b(i,l0) c(i+1,l0) d(i+1,l1) with l1<l0 => facing up? check: (b-a) = +right, (d-a) = +forward => right x forward = -up?  right=( -cos,0,sin ), fwd=(sin,0,cos): r x f = (0*cos - sin*0, sin*sin - (-cos)*cos, ...)=(0,1,0) up
@@ -1421,6 +1624,12 @@ function buildRoad(w) {
       else if (mtn || w.LIM[i] <= 30) { mk(-.12, .11, yl, false); mk(.12, .11, yl, false); }
       else mk(0, .14, wl, true);
     }
+    // W-beam guardrails on highways (away from stations/tolls) and on rural curves
+    if (!mtn && !city && (kd === KIND.highway ? !nearEv(i, 110) : (kd === KIND.rural && Math.abs(P.k[i]) > 1 / 170 && !nearEv(i, 60)))) for (const s of [-1, 1]) { const l = s * (hw + shw + .45); const bm = bucketOf(P.x[i], P.z[i]).mb; const a = pt(i, l, .5), b = pt(i + 1, l, .5), a2 = pt(i, l, .82), b2 = pt(i + 1, l, .82); const g0 = pt(i, l - s * .03, .62), g1 = pt(i + 1, l - s * .03, .62), g2 = pt(i, l - s * .03, .7), g3 = pt(i + 1, l - s * .03, .7);
+      if (s > 0) { bm.quad(b, a, a2, b2, C.lgrey, .75); bm.quad(a, b, b2, a2, C.grey, .5); bm.quad(g0, g1, g3, g2, C.steel, .6); } else { bm.quad(a, b, b2, a2, C.lgrey, .75); bm.quad(b, a, a2, b2, C.grey, .5); bm.quad(g1, g0, g2, g3, C.steel, .6); }
+      if (i % 2 === 0) { const p = pt(i, l + s * .12, 0); bm.box(p[0], p[1] + .38, p[2], .12, .8, .16, C.dark, .3); } if (i % 6 === 0) { const p = pt(i, l - s * .02, .75); bm.box(p[0], p[1], p[2], .05, .08, .08, s * w.side > 0 ? C.amber : C.white, .6, 2); } }
+    // raised pavement markers (cat's eyes)
+    if (w.q > .6 && !city && i % 3 === 0 && kd !== KIND.yard) { const bm = bucketOf(P.x[i], P.z[i]).mb; const cat = (l, c) => { const p = pt(i, l, .03); bm.box(p[0], p[1], p[2], .12, .035, .12, c, .7, 2); }; if (w.LN[i] === 2) { cat(0, C.amber); cat(LANE, C.white); cat(-LANE, C.white); } else cat(0, C.amber); }
     // guardrails on mountains
     if (mtn) for (const s of [-1, 1]) { const l = s * (hw + shw + .2); const bm = bucketOf(P.x[i], P.z[i]).mb; const a = pt(i, l, .55), b = pt(i + 1, l, .55), a2 = pt(i, l, .85), b2 = pt(i + 1, l, .85); if (s > 0) { bm.quad(b, a, a2, b2, C.lgrey, .7); bm.quad(a, b, b2, a2, C.lgrey, .7); } else { bm.quad(a, b, b2, a2, C.lgrey, .7); bm.quad(b, a, a2, b2, C.lgrey, .7); } if (i % 2 === 0) { const p = pt(i, l, 0); bm.box(p[0], p[1] + .4, p[2], .12, .8, .12, C.grey, .3); } }
     // highway median barrier
@@ -1444,8 +1653,14 @@ function buildRoad(w) {
     for (const dir of [1, -1]) { const lon = -dir * 8.6; const q = (la, lo) => [P.x[i] + rx * la + fx * lo, y + .03, P.z[i] + rz * la + fz * lo]; const l0 = dir > 0 ? (w.side > 0 ? 0 : -hw) : (w.side > 0 ? -hw : 0), l1 = l0 + hw; bm.quad(q(l0, lon - .25), q(l1, lon - .25), q(l1, lon + .25), q(l0, lon + .25), wl, .15); }
     L.stopS = L.s - 9;
   }
+  // station pads: edge lines, parking bays and arrows
+  for (const p of w.pads) { if (p.yard) continue; const c = Math.cos(p.h), s = Math.sin(p.h); const q = (u, v) => [p.x + u * c + v * s, p.y + .07, p.z - u * s + v * c]; const bm = bucketOf(p.x, p.z).mb;
+    const ln = (u0, v0, u1, v1, wd, col) => { const A = q(u0, v0), B = q(u1, v1); const dx = B[0] - A[0], dz = B[2] - A[2], l = Math.hypot(dx, dz) || 1, nx = -dz / l * wd, nz = dx / l * wd; bm.quad([A[0] + nx, A[1], A[2] + nz], [A[0] - nx, A[1], A[2] - nz], [B[0] - nx, B[1], B[2] - nz], [B[0] + nx, B[1], B[2] + nz], col, .15); bm.quad([A[0] - nx, A[1], A[2] - nz], [A[0] + nx, A[1], A[2] + nz], [B[0] + nx, B[1], B[2] + nz], [B[0] - nx, B[1], B[2] - nz], col, .15); };
+    for (const u of [-p.hu + .6, p.hu - .6]) ln(u, -p.hv + 2, u, p.hv - 2, .08, wl);
+    for (let v = -p.hv + 10; v < p.hv - 8; v += 4.5) { if (Math.abs(v) < 14) continue; ln(-p.hu + .6, v, -p.hu + 7, v + 2.5, .07, wl); }
+    for (const v of [-20, 0, 20]) { ln(p.hu * .35, v - 2, p.hu * .35, v + 1.4, .12, wl); ln(p.hu * .35, v + 2, p.hu * .35 - .8, v + .8, .1, wl); ln(p.hu * .35, v + 2, p.hu * .35 + .8, v + .8, .1, wl); } }
   // yard pads
-  for (const p of w.pads) { const c = Math.cos(p.h), s = Math.sin(p.h); const q = (u, v) => [p.x + u * c + v * s, p.y + .04, p.z - u * s + v * c]; const nu = Math.ceil(p.hu * 2 / 12), nv = Math.ceil(p.hv * 2 / 12); for (let a = 0; a < nu; a++) for (let b2 = 0; b2 < nv; b2++) { const u0 = -p.hu + a * p.hu * 2 / nu, u1 = u0 + p.hu * 2 / nu, v0 = -p.hv + b2 * p.hv * 2 / nv, v1 = v0 + p.hv * 2 / nv; const cc = (a + b2) % 2 ? hex('#55565a') : hex('#5c5d61'); const m = q((u0 + u1) / 2, (v0 + v1) / 2); bucketOf(m[0], m[2]).mb.quad(q(u1, v0), q(u0, v0), q(u0, v1), q(u1, v1), cc, .06); } }
+  for (const p of w.pads) { const c = Math.cos(p.h), s = Math.sin(p.h); const q = (u, v) => [p.x + u * c + v * s, p.y + .04, p.z - u * s + v * c]; const nu = Math.ceil(p.hu * 2 / 12), nv = Math.ceil(p.hv * 2 / 12); for (let a = 0; a < nu; a++) for (let b2 = 0; b2 < nv; b2++) { const u0 = -p.hu + a * p.hu * 2 / nu, u1 = u0 + p.hu * 2 / nu, v0 = -p.hv + b2 * p.hv * 2 / nv, v1 = v0 + p.hv * 2 / nv; const cc = p.yard ? ((a + b2) % 2 ? hex('#55565a') : hex('#5c5d61')) : ((a + b2) % 2 ? hex('#434549') : hex('#47494d')); const m = q((u0 + u1) / 2, (v0 + v1) / 2); bucketOf(m[0], m[2]).mb.quad(q(u1, v0), q(u0, v0), q(u0, v1), q(u1, v1), cc, .06); } }
 }
 // ---- scenery ----
 function buildScenery(w, seed) {
@@ -1654,6 +1869,59 @@ function yardMeshes(w, Y) {
   if (!Y.park) { const sp = L(10, Y.isEnd ? Y.v0 - 6 : Y.v1 + 6); const sb = bucketOf(sp[0], sp[1]); sb.mb.cyl('y', sp[0], y + 2, sp[1], .1, 4, 6, C.grey, .4, 0, false); sb.tb.push().tr(sp[0], y + 4.4, sp[1]).ry(Y.h + (Y.isEnd ? PI : 0)); sb.tb.tquad([1.6, -.5, -.06], [-1.6, -.5, -.06], [-1.6, .5, -.06], [1.6, .5, -.06], ATL.cells.depot, 2); sb.tb.tquad([-1.6, -.5, .06], [1.6, -.5, .06], [1.6, .5, .06], [-1.6, .5, .06], ATL.cells.depot, 2); sb.tb.pop(); }
 }
 function finalizeBuckets(w) { for (const b of w.buckets.values()) { b.mesh = b.mb.build(); b.tmesh = b.tb.build(); b.mb = b.tb = null; const all = b.mesh.concat(b.tmesh); b.cy = all.length ? all[0].cy : 0; let r = 0; for (const m of all) r = Math.max(r, Math.hypot(m.cx - b.cx, m.cy - b.cy, m.cz - b.cz) + m.r); b.r = r || BUCKET; } }
+// ---- extra scenery: tree variety + contact shadows, roadside grass/flowers, houses & towns, gantries, overpass bridges ----
+let GRASSC = null;
+function buildExtras(w, seed) {
+  const P = w.P, G = w.G, q = w.q; let hs = ((seed | 0) * 2654435761 + 12345) >>> 0; hs = hs % 2147483646 + 1; const r = () => { hs = (hs * 16807) % 2147483647; return hs / 2147483647; };
+  const nearEvent = (i, rad) => w.events.some(e => Math.abs(e.i - i) * STEP < rad);
+  const inPad = (x, z, m) => w.pads.some(p => { const dx = x - p.x, dz = z - p.z; const c = Math.cos(p.h), s = Math.sin(p.h); return Math.abs(dx * c - dz * s) < p.hu + m && Math.abs(dx * s + dz * c) < p.hv + m; });
+  const gcol = (x, z) => { const X = clamp(Math.round((x - G.x0) / GRID), 0, G.NX - 1), Z = clamp(Math.round((z - G.z0) / GRID), 0, G.NZ - 1), id = Z * G.NX + X; return [G.C[id * 3], G.C[id * 3 + 1], G.C[id * 3 + 2]]; };
+  const blob = (mb, x, y, z, rad, col) => { const c = scalec(col, .58); for (let k = 0; k < 8; k++) { const a0 = k / 8 * TAU, a1 = (k + 1) / 8 * TAU; mb.tri([x, y + .05, z], [x + Math.sin(a1) * rad, y + .05, z + Math.cos(a1) * rad], [x + Math.sin(a0) * rad, y + .05, z + Math.cos(a0) * rad], c, .02); } };
+  const dens = q < .6 ? .3 : q < .7 ? .5 : 1;
+  // varied trees in a band near the road
+  for (let Z = 0; Z < G.NZ - 1; Z++) for (let X = 0; X < G.NX - 1; X++) {
+    const id = Z * G.NX + X, ni = G.near[id]; if (ni < 0) continue; const d = G.dist[id], hw = w.HW[ni]; if (d < hw + 9 || d > 160) continue;
+    const bk = BIOME_KEYS[P.biome[ni]]; const B = BIOMES[bk]; if (P.kind[ni] === KIND.city && d < hw + 40) continue; if (bk === 'desert' || bk === 'canyon') { if (r() > .03 * dens) continue; } else if (r() > B.dens * dens * (d < 70 ? .2 : .07)) continue;
+    const x = G.x0 + (X + r()) * GRID, z = G.z0 + (Z + r()) * GRID; const dd = terrainD(x, z); if (dd < hw + 8) continue; if (inPad(x, z, 6)) continue; const y = terrainH(x, z); if (w.waterY > -1e8 && y < w.waterY + .5) continue;
+    const pool = bk === 'snow' ? ['snowpine', 'birch'] : bk === 'forest' ? ['pine', 'oak', 'birch', 'poplar'] : bk === 'tropic' ? ['palm', 'oak', 'flowers'] : bk === 'desert' || bk === 'canyon' ? ['dry', 'rock', 'cactus'] : ['oak', 'poplar', 'birch', 'flowers', 'oak'];
+    const kind = pool[(r() * pool.length) | 0]; const sc = .8 + r() * .6; const mb = bucketOf(x, z).mb; propTree(mb, kind, x, y - .1, z, sc, r);
+    if (kind !== 'flowers' && kind !== 'rock' && bk !== 'snow') blob(mb, x, y, z, 2.1 * sc, gcol(x, z));
+  }
+  // roadside grass tufts + wild flowers (high quality only)
+  if (q > .8) for (let i = 4; i < w.n - 4; i += 1) { const kd = P.kind[i]; if (kd === KIND.city || kd === KIND.yard) continue; const bk = BIOME_KEYS[P.biome[i]]; if (bk === 'snow' || bk === 'desert' || bk === 'canyon') continue; if (nearEvent(i, 40)) continue;
+    const hw = w.HW[i]; const rx = -Math.cos(P.h[i]), rz = Math.sin(P.h[i]);
+    for (let k = 0; k < 2; k++) { const s = r() < .5 ? 1 : -1, off = hw + 3.6 + r() * 7; const x = P.x[i] + rx * s * off + (r() - .5) * 3, z = P.z[i] + rz * s * off + (r() - .5) * 3; if (inPad(x, z, 2)) continue; const y = terrainH(x, z); const fl = r() < .14; GRASSC = scalec(gcol(x, z), 1.18 + r() * .2); propTree(bucketOf(x, z).mb, fl ? 'flowers' : 'grass', x, y - .05, z, fl ? .6 + r() * .4 : .35 + r() * .35, r); } }
+  // houses: small towns on the approach to each city + scattered farms along rural roads
+  for (let i = 24; i < w.n - 24; i += 3) {
+    const kd = P.kind[i]; if (kd !== KIND.rural) continue; const bk = BIOME_KEYS[P.biome[i]]; if (bk === 'canyon') continue;
+    let nearCity = 1e9; for (let j = Math.max(0, i - 90); j < Math.min(w.n, i + 90); j += 6) if (P.kind[j] === KIND.city) nearCity = Math.min(nearCity, Math.abs(j - i)); const town = nearCity < 70;
+    if (!(town ? r() < .5 : r() < .045)) continue; if (nearEvent(i, 50)) continue;
+    const hw = w.HW[i]; const rx = -Math.cos(P.h[i]), rz = Math.sin(P.h[i]); const s = r() < .5 ? 1 : -1; const off = hw + (town ? 13 : 22) + r() * (town ? 10 : 30);
+    const x = P.x[i] + rx * s * off, z = P.z[i] + rz * s * off; if (terrainD(x, z) < off - 3 || inPad(x, z, 10)) continue; const y = terrainH(x, z);
+    if (Math.abs(terrainH(x + 4, z) - terrainH(x - 4, z)) > 2.5 || Math.abs(terrainH(x, z + 4) - terrainH(x, z - 4)) > 2.5) continue; if (w.waterY > -1e8 && y < w.waterY + 1) continue;
+    const bk2 = bucketOf(x, z); propHouse(bk2.mb, x, y, z, P.h[i] + (s > 0 ? -PI / 2 : PI / 2) + (r() - .5) * .3, r, !town && r() < .4); w.glows.push([x + rx * s * -3, y + 2.4, z + rz * s * -3, .35]);
+    if (r() < .6) { const tx = x + (r() - .5) * 14, tz = z + (r() - .5) * 14; if (terrainD(tx, tz) > hw + 9) propTree(bk2.mb, bk === 'tropic' ? 'palm' : 'oak', tx, terrainH(tx, tz) - .1, tz, .9 + r() * .4, r); }
+  }
+  // highway: overhead sign gantries + overpass bridges
+  let lastG = -999, lastO = -999;
+  for (let i = 40; i < w.n - 40; i++) {
+    if (P.kind[i] !== KIND.highway || w.LN[i] !== 2) continue; if (Math.abs(P.k[i]) > 1 / 500) continue; if (nearEvent(i, 140)) continue;
+    const hw = w.HW[i], y = P.y[i], h = P.h[i], shw = 2.4; const b = bucketOf(P.x[i], P.z[i]);
+    if (i - lastO > 220 && i - lastG > 25 && Math.abs(P.y[i + 3] - P.y[i - 3]) < .6) { lastO = i;
+      const span = 2 * (hw + shw) + 10, dy = 7.6; b.mb.push().tr(P.x[i], y, P.z[i]).ry(h);
+      b.mb.box(0, dy, 0, span + 40, .7, 9, C.concrete, .1); b.mb.box(0, dy - .7, 0, span + 40, .7, 7.4, mixc(C.concrete, [0, 0, 0], .15), .1);
+      for (const zz of [-4.3, 4.3]) { b.mb.box(0, dy + .75, zz, span + 40, .8, .35, hex('#b0aea6'), .1); b.mb.box(0, dy + 1.2, zz, span + 40, .08, .08, C.lgrey, .6); }
+      for (const sx of [-1, 1]) { const px = sx * (hw + shw + 3); for (const zz of [-2.4, 2.4]) b.mb.box(px, dy / 2 - 1, zz, 1.1, dy + 1.6, 1.1, hex('#a9a69e'), .08); b.mb.box(px, dy - 1.2, 0, 1.6, .5, 7.8, hex('#a29f97'), .08);
+        b.mb.tbox(sx * (span / 2 + 20 + 6), dy / 2 - 3, 0, 12, dy + 5, 10, 2, 9.6, -sx * 5, 0, hex('#8f8a80'), .05); }
+      for (let k = -1; k <= 1; k += 2) b.mb.box(k * LANE * 1.5, dy + .36, 0, .15, .02, 8.6, C.yellow, .2);
+      b.mb.pop(); continue; }
+    if (i - lastG > 150 && i - lastO > 25) { lastG = i; const span = hw + shw + 1.2; b.mb.push().tr(P.x[i], y, P.z[i]).ry(h);
+      for (const sx of [-1, 1]) { b.mb.box(sx * span, 3.6, 0, .35, 7.2, .35, C.steel, .5); b.mb.box(sx * span, .2, 0, .9, .4, .9, C.concrete, .1); }
+      b.mb.box(0, 6.9, 0, span * 2, .3, .3, C.steel, .5); b.mb.box(0, 6.3, -.1, span * 2, .12, .12, C.steel, .5); b.mb.pop();
+      const sw = 7.4, sh = 2.7, lat = w.side * (LANE); b.tb.push().tr(P.x[i], y, P.z[i]).ry(h); const cx = -lat; b.tb.tquad([cx + sw / 2, 5.0, -.3], [cx - sw / 2, 5.0, -.3], [cx - sw / 2, 5 + sh, -.3], [cx + sw / 2, 5 + sh, -.3], ATL.cells.gantry, 0); b.tb.pop();
+      b.mb.push().tr(P.x[i], y, P.z[i]).ry(h); b.mb.box(cx, 5 + sh / 2, -.2, sw + .2, sh + .2, .12, C.grey, .3); b.mb.pop(); }
+  }
+}
 // ================= physics: tractor + articulated trailer, collisions, autopilot =================
 const GEARS = [14.9, 11.7, 9.1, 7.1, 5.6, 4.4, 3.4, 2.7, 2.1, 1.66, 1.29, 1.0], FINAL = 3.2, WR = .52, REV_RATIO = 13;
 const fwd = h => [Math.sin(h), Math.cos(h)], rgt = h => [-Math.cos(h), Math.sin(h)];
@@ -2030,7 +2298,7 @@ function qualityPreset() { const g = SAVE.settings.gfx; if (g === 'high') return
 function isMobile() { return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && window.innerWidth < 1100); }
 function viewDist() { return G.quality > .85 ? 640 : G.quality > .6 ? 480 : 360; }
 function resize() {
-  const dpr = Math.min(window.devicePixelRatio || 1, G.quality > .85 ? 2 : 1.5) * G.scale; const w = window.innerWidth, h = window.innerHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, G.quality > .85 ? 2 : G.quality > .6 ? 1.5 : 1.25) * G.scale; const w = window.innerWidth, h = window.innerHeight;
   CV.width = Math.max(1, Math.round(w * dpr)); CV.height = Math.max(1, Math.round(h * dpr)); CV.style.width = w + 'px'; CV.style.height = h + 'px';
   if (typeof hudResize === 'function') hudResize();
 }
@@ -2039,7 +2307,7 @@ function buildStaticMeshes() {
   const b = new MB(); b.box(0, 0, 0, .55, 1.6, .5, C.dark, .4); b.box(0, .5, .26, .3, .3, .05, hex('#ff2010'), .6, 3); b.box(0, 0, .26, .3, .3, .05, hex('#ffb010'), .6, 4); b.box(0, -.5, .26, .3, .3, .05, hex('#20ff60'), .6, 5); for (const y of [.5, 0, -.5]) b.box(0, y + .17, .32, .34, .04, .14, C.black, .1); MESH.tlight = b.build();
   const a = new MB(); const n = 8, len = LANE - .5; for (let i = 0; i < n; i++) a.box((i + .5) * len / n, 0, 0, len / n, .14, .1, i % 2 ? C.white : C.red, .4); a.box(0, -.4, 0, .3, 1, .3, C.yellow, .3); MESH.arm = a.build();
   const c = new MB(); c.cyl('y', 0, .38, 0, .3, .76, 10, hex('#ff6a10'), .3, 0, 'b', .05); c.cyl('y', 0, .45, 0, .22, .12, 10, C.white, .4, 0, false, .17); c.box(0, .02, 0, .7, .04, .7, hex('#ff6a10'), .3); MESH.cone = c.build();
-  const wtr = new MB(); wtr.quad([-3000, 0, -3000], [-3000, 0, 3000], [3000, 0, 3000], [3000, 0, -3000], hex('#1f6a8a'), .85); MESH.water = wtr.build();
+  const wtr = new MB(); wtr.quad([-3000, 0, -3000], [-3000, 0, 3000], [3000, 0, 3000], [3000, 0, -3000], hex('#1d5f7e'), .86); MESH.water = wtr.build(); MESH.water.forEach(m => m.water = true);
   // showroom
   const s = new MB(); for (let x = -10; x < 10; x++) for (let z = -10; z < 10; z++) s.quad([x * 3, 0, z * 3], [x * 3, 0, z * 3 + 3], [x * 3 + 3, 0, z * 3 + 3], [x * 3 + 3, 0, z * 3], (x + z) % 2 ? hex('#2a2d34') : hex('#24272d'), .55);
   s.cyl('y', 0, .06, 0, 9, .12, 40, hex('#3a3f48'), .7, 0, true); s.cyl('y', 0, .125, 0, 9.05, .01, 40, hex('#ffb020'), .5, 1, false);
@@ -2049,7 +2317,7 @@ function buildStaticMeshes() {
   MESH.show = s.build(); const st = new MB(true); st.tquad([-9, 9, -23.6], [9, 9, -23.6], [9, 12.4, -23.6], [-9, 12.4, -23.6], ATL.cells.liv0, 1); MESH.showT = st.build();
 }
 let WHEELS = null;
-function wheelMeshes() { if (!WHEELS) WHEELS = { s: buildWheel(.52, .32, C.chrome, 0), d: buildWheel(.52, .3, C.chrome, 1), t: buildWheel(.48, .28, C.lgrey, 1) }; return WHEELS; }
+function wheelMeshes() { if (!WHEELS) WHEELS = { H: { s: buildWheel(.52, .32, C.chrome, 0), d: buildWheel(.52, .3, C.chrome, 1), t: buildWheel(.48, .28, C.lgrey, 1) }, L: { s: buildWheelLite(.52, .32, C.chrome, 0), d: buildWheelLite(.52, .3, C.chrome, 1), t: buildWheelLite(.48, .28, C.lgrey, 1) } }; return (G.quality < .6 && !G.showroom) ? WHEELS.L : WHEELS.H; }
 // ---------- jobs ----------
 function cityUnlocked(i) { return SAVE.level >= CITIES[i].lvl; }
 function genJobs(city, seed) {
@@ -2427,7 +2695,12 @@ function emitParticles(T, dt) {
   G.smokeT = (G.smokeT || 0) - dt; if (G.smokeT <= 0 && !T.def.electric) { G.smokeT = .07 / q; const heavy = T.throttle > .7 && T.rpm < 1500; for (const e of T.info.exh) { const p = localToWorld(T, e[0], e[1], e[2]); const c = heavy ? .18 : .5; addP(p[0], p[1], p[2], -fwd(T.h)[0] * sp * .3, 1.2 + T.throttle, -fwd(T.h)[1] * sp * .3, heavy ? 1.6 : .9, .2, heavy ? 1.6 : .9, c, c, c, heavy ? .35 : .12); } }
   // dust / spray behind wheels
   const wet = G.weather === 'rain' && G.wxAmt > .3, dusty = (G.biome === 'desert' || G.biome === 'canyon' || T.offroad > .1), snowy = G.biome === 'snow';
-  if (sp > 5 && (wet || dusty || snowy)) { G.dustT = (G.dustT || 0) - dt; if (G.dustT <= 0) { G.dustT = .05 / q; const src = T.tr ? [[T.tx, T.tz, T.th, 1.2], [T.tx, T.tz, T.th, -1.2]] : [[T.x, T.z, T.h, 1], [T.x, T.z, T.h, -1]]; for (const [x, z, h, s] of src) { const r = rgt(h); const c = wet ? [.8, .82, .85, .18] : snowy ? [.95, .97, 1, .3] : [.75, .62, .45, .28]; addP(x + r[0] * s, T.ty + .4, z + r[1] * s, (Math.random() - .5) * 2, .6 + Math.random(), (Math.random() - .5) * 2, wet ? .8 : 1.6, .5, wet ? 2.2 : 2.8, c[0], c[1], c[2], c[3] * Math.min(1, sp / 20) * (dusty && T.offroad > .1 ? 2 : 1)); } } }
+  if (sp > 4 && (wet || dusty || snowy)) { G.dustT = (G.dustT || 0) - dt; if (G.dustT <= 0) { G.dustT = (wet ? .035 : .045) / q; const kk = Math.min(1, sp / 22);
+      const src = []; const ft = fwd(T.h), rt = rgt(T.h); for (const s of [1, -1]) src.push([T.x + rt[0] * s * 1.1 - ft[0] * .8, T.z + rt[1] * s * 1.1 - ft[1] * .8, T.h, T.y]);
+      if (T.tr) { const f2 = fwd(T.th), r2 = rgt(T.th); for (const s of [1, -1]) src.push([T.tx + r2[0] * s * 1.15 - f2[0] * 1.6, T.tz + r2[1] * s * 1.15 - f2[1] * 1.6, T.th, T.ty]); }
+      for (const [x, z, h, y] of src) { const f = fwd(h); const c = wet ? [.78, .81, .85, .2] : snowy ? [.95, .97, 1, .3] : [.76, .63, .46, .3]; const big = wet ? 1 + kk : 1;
+        addP(x + (Math.random() - .5) * .4, y + .35, z + (Math.random() - .5) * .4, -f[0] * sp * .25 + (Math.random() - .5) * 2.4, .5 + Math.random() * 1.4, -f[1] * sp * .25 + (Math.random() - .5) * 2.4, wet ? .9 + kk * .6 : 1.8, .45 * big, (wet ? 2.6 : 3.2) * big, c[0], c[1], c[2], c[3] * kk * (dusty && T.offroad > .1 ? 2 : 1));
+        if (wet && q > .6 && Math.random() < .5) addP(x, y + .2, z, -f[0] * sp * .1 + (Math.random() - .5) * 3, 1.5 + Math.random() * 2, -f[1] * sp * .1 + (Math.random() - .5) * 3, .45, .06, .05, .85, .88, .95, .5 * kk, 2); } } }
   // tire smoke on slip
   if (T.slip > .3 && sp > 3) for (let k = 0; k < 2; k++) addP(T.x + (Math.random() - .5) * 2, T.y + .3, T.z + (Math.random() - .5) * 2, 0, .8, 0, 1.2, .4, 2, .8, .8, .8, .25);
   // weigh / camera flash fade
@@ -2437,8 +2710,8 @@ function emitParticles(T, dt) {
 const CAM = { pos: [0, 10, -20], tgt: [0, 0, 0], f: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0], tx: .6, ty: .5, fov: 60 * DEG, near: .5, far: 2000 };
 function skyKey(sunY) {
   // returns {zen, hor, sun, amb, gnd}
-  const day = { zen: hex('#2f6fd0'), hor: hex('#a9d2f2'), sun: [1.25, 1.18, 1.05], amb: [.42, .5, .62], gnd: [.34, .3, .26] };
-  const set = { zen: hex('#3a4c8a'), hor: hex('#ff9a5a'), sun: [1.2, .7, .4], amb: [.35, .3, .38], gnd: [.25, .2, .18] };
+  const day = { zen: hex('#2a64c8'), hor: hex('#b4d8f2'), sun: [1.36, 1.27, 1.08], amb: [.36, .44, .58], gnd: [.33, .29, .24] };
+  const set = { zen: hex('#34478a'), hor: hex('#ff9454'), sun: [1.45, .78, .42], amb: [.36, .3, .4], gnd: [.26, .2, .17] };
   const ngt = { zen: hex('#02050f'), hor: hex('#141c32'), sun: [.2, .23, .34], amb: [.11, .13, .2], gnd: [.06, .065, .085] };
   const mix = (a, b, t) => ({ zen: mixc(a.zen, b.zen, t), hor: mixc(a.hor, b.hor, t), sun: mixc(a.sun, b.sun, t), amb: mixc(a.amb, b.amb, t), gnd: mixc(a.gnd, b.gnd, t) });
   if (sunY > .25) return day; if (sunY > 0) return mix(set, day, sunY / .25); if (sunY > -.18) return mix(ngt, set, (sunY + .18) / .18); return ngt;
@@ -2452,8 +2725,8 @@ function computeLighting(indoor) {
   L.sunDir.set(ld.map(v => v / ll)); let sun = k.sun.slice(), amb = k.amb.slice(), zen = k.zen, hor = k.hor; let fogC = hor.slice();
   const wx = G.weather, w = G.wxAmt; let fogD = 1.7 / viewDist(); let cloud = .3, fogAmt = 0;
   if (wx === 'cloudy') { sun = scalec(sun, .6); cloud = .75; }
-  if (wx === 'rain') { sun = scalec(sun, 1 - .7 * w); amb = scalec(amb, 1 - .25 * w); const g = (zen[0] + zen[1] + zen[2]) / 3; zen = mixc(zen, [g * .6, g * .62, g * .7], w); hor = mixc(hor, scalec([.55, .58, .62], 1 - night * .85), w * .8); fogC = hor; fogD *= 1 + w * 1.4; cloud = .3 + .65 * w; fogAmt = .3 * w; }
-  if (wx === 'fog') { sun = scalec(sun, 1 - .5 * w); const fc = scalec([.72, .74, .76], 1 - night * .85); hor = mixc(hor, fc, w); zen = mixc(zen, fc, w * .7); fogC = hor; fogD = lerp(fogD, 1 / 95, w); fogAmt = .8 * w; }
+  if (wx === 'rain') { sun = scalec(sun, 1 - .7 * w); amb = scalec(amb, 1 - .25 * w); const g = (zen[0] + zen[1] + zen[2]) / 3; zen = mixc(zen, [g * .6, g * .62, g * .7], w); hor = mixc(hor, scalec([.47, .52, .58], 1 - night * .85), w * .85); fogC = scalec(hor, .96); fogD *= 1 + w * 1.05; cloud = .3 + .65 * w; fogAmt = .3 * w; }
+  if (wx === 'fog') { sun = scalec(sun, 1 - .5 * w); const fc = scalec([.66, .7, .74], 1 - night * .85); hor = mixc(hor, fc, w); zen = mixc(zen, fc, w * .7); fogC = hor; fogD = lerp(fogD, 1 / 95, w); fogAmt = .8 * w; }
   if (wx === 'snow') { const fc = scalec([.82, .85, .9], 1 - night * .8); hor = mixc(hor, fc, w); zen = mixc(zen, scalec(fc, .8), w * .7); fogC = hor; fogD = lerp(fogD, 1 / 170, w); sun = scalec(sun, 1 - .5 * w); cloud = .9; fogAmt = .6 * w; }
   if (wx === 'dust') { const fc = scalec([.85, .62, .38], 1 - night * .8); hor = mixc(hor, fc, w); zen = mixc(zen, scalec(fc, .9), w * .5); fogC = hor; fogD = lerp(fogD, 1 / 200, w); fogAmt = .5 * w; }
   if (indoor) { sun = [1.05, 1, .95]; amb = [.55, .55, .6]; fogC = [.08, .09, .11]; fogD = .004; L.sunDir.set([.3, .9, .4].map(v => v / Math.hypot(.3, .9, .4))); }
@@ -2503,6 +2776,29 @@ function updateCamera(dt) {
   for (let i = 0; i < 3; i++) { G.camPos[i] = lerp(G.camPos[i], pos[i], G.cam === 3 ? k * .6 : Math.min(1, k * 1.6)); G.camTgt[i] = lerp(G.camTgt[i], tgt[i], Math.min(1, k * 2)); }
   setCam(G.camPos[0], G.camPos[1], G.camPos[2], G.camTgt[0], G.camTgt[1], G.camTgt[2], fv, near);
 }
+// ---------- distant hills (two silhouette rings around the camera, hazed by aerial perspective) ----------
+let HILLS = null;
+function buildHills() {
+  const bi = W.P.biome[Math.min(W.n - 1, W.n >> 1)]; const bk = BIOME_KEYS[bi]; const B = BIOMES[bk]; const r = mulberry((W.seed | 0) * 31 + 7);
+  const g = hex(B.g2 || '#4a7a3a'), rock = hex(B.rock || '#7a7468'); const snowy = bk === 'snow', flat = bk === 'city' || bk === 'tropic';
+  const b = new MB(); const N = 120;
+  const ring = (R, h0, h1, col, top, seed) => { const ph = [r() * TAU, r() * TAU, r() * TAU, r() * TAU];
+    const H = a => { const v = .5 + .22 * Math.sin(a * 3 + ph[0]) + .16 * Math.sin(a * 7 + ph[1]) + .09 * Math.sin(a * 13 + ph[2]) + .05 * Math.sin(a * 29 + ph[3]); return h0 + (h1 - h0) * Math.max(0, v); };
+    for (let i = 0; i < N; i++) { const a0 = i / N * TAU, a1 = (i + 1) / N * TAU; const c0 = [Math.sin(a0) * R, Math.cos(a0) * R], c1 = [Math.sin(a1) * R, Math.cos(a1) * R]; const y0 = H(a0), y1 = H(a1);
+      const mid = .55; b.quad([c1[0], -80, c1[1]], [c0[0], -80, c0[1]], [c0[0], y0 * mid, c0[1]], [c1[0], y1 * mid, c1[1]], col, .02);
+      b.quad([c1[0], y1 * mid, c1[1]], [c0[0], y0 * mid, c0[1]], [c0[0], y0, c0[1]], [c1[0], y1, c1[1]], top, .02); } };
+  const hm = flat ? .8 : snowy ? 1.9 : 1.35;
+  ring(1.0, 18 * hm, 95 * hm, scalec(g, .62), mixc(scalec(g, .75), rock, .35), 1);
+  ring(1.22, 40 * hm, 190 * hm, mixc(scalec(g, .5), rock, .5), snowy ? [.92, .94, .98] : mixc(rock, [.8, .82, .86], .2), 2);
+  HILLS = { w: W, mesh: b.build() };
+}
+function drawHills(vd) {
+  if (!W || !G.truck || G.quality < .6) return; if (!HILLS || HILLS.w !== W) buildHills();
+  const R = vd * 1.06; useProg(GLX.main); setTint([1, 1, 1], [1, 1, 1]); setEm(null, 0); const u = GLX.main.u;
+  gl.uniform1f(u.uFogD, Math.max(.95 / R, L.fogD * .6)); gl.uniform1f(u.uFlat, .65);
+  M4.trs(_md, CAM.pos[0], G.truck.y - 22, CAM.pos[2], 0, 0, 0); for (let i = 0; i < 16; i++) _md[i] = _md[i]; _md[0] *= R; _md[2] *= R; _md[8] *= R; _md[10] *= R;
+  drawMesh(HILLS.mesh, _md, false); gl.uniform1f(u.uFogD, L.fogD); gl.uniform1f(u.uFlat, 0);
+}
 // ---------- scene ----------
 const SPR_ADD = [], SPR_ALPHA = [], SPR_ADD2 = [];
 const _md = new Float32Array(16), _md2 = new Float32Array(16), _wm = new Float32Array(16);
@@ -2522,7 +2818,7 @@ function drawTruck(T, mirrorPass) {
 function drawCar(c) { useProg(GLX.main); setTint(c.tint, c.tint); setEm(new Float32Array([0, c.brake ? 1 : L.night * .6, c.ind < 0 && G.blinkOn ? 1 : 0, c.ind > 0 && G.blinkOn ? 1 : 0]), 0); M4.trs(_md, c.x, c.y, c.z, c.h, 0, 0); drawMesh(c.m.mesh, _md, true); }
 function renderScene(mirror) {
   const vd = mirror ? viewDist() * .5 : viewDist(); const cx = CAM.pos[0], cz = CAM.pos[2]; R.prog = null;
-  drawSky(L, CAM);
+  drawSky(L, CAM); drawHills(vd);
   // world buckets
   const vis = [];
   for (const b of W.buckets.values()) { const dx = b.cx - cx, dz = b.cz - cz; if (dx * dx + dz * dz > (vd + b.r) * (vd + b.r)) continue; if (!sphereVisible(R.planes, b.cx, b.cy, b.cz, b.r)) continue; vis.push(b); }
@@ -2549,11 +2845,15 @@ function renderScene(mirror) {
   if (!mirror) drawPrecip();
 }
 function drawShadows() {
-  const v = [], idx = []; const T = G.truck;
-  const quad = (x, z, y, hx, hz, h, a) => { const f = fwd(h), r = rgt(h); const b = v.length / 11; for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) v.push(x + r[0] * hx * sx + f[0] * hz * sz, y + .06, z + r[1] * hx * sx + f[1] * hz * sz, 0, 1, 0, 0, 0, 0, 0, 0); idx.push(b, b + 1, b + 2, b, b + 2, b + 3); };
-  const A = truckOBB(T); quad(A.x, A.z, T.y, A.hx + .2, A.hz + .2, A.h); if (T.tr) { const B = trailerOBB(T); quad(B.x, B.z, T.ty, B.hx + .15, B.hz + .1, B.h); }
-  for (const c of TR.cars) { if (Math.abs(c.x - CAM.pos[0]) > 120 || Math.abs(c.z - CAM.pos[2]) > 120) continue; quad(c.x, c.z, c.y, c.wid / 2 + .15, c.len / 2 + .1, c.h); }
-  gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -2); drawDynamic(v, idx, true, .38 * (1 - L.night * .5)); gl.disable(gl.POLYGON_OFFSET_FILL);
+  const T = G.truck, sd = L.sunDir; const lum = (L.sunCol[0] + L.sunCol[1] + L.sunCol[2]) / 3; const v = []; let n = 0;
+  const sy = Math.max(sd[1], .28), ox = -sd[0] / sy, oz = -sd[2] / sy; const sun = clamp((lum - .25) / .9, 0, 1);
+  // quad: center, half extents, heading, height, ground y, strength
+  const quad = (x, z, y, hx, hz, h, ht, k, cast) => { const f = fwd(h), r = rgt(h); const offx = cast ? ox * ht * .55 : 0, offz = cast ? oz * ht * .55 : 0;
+    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { let px = x + r[0] * hx * sx + f[0] * hz * sz, pz = z + r[1] * hx * sx + f[1] * hz * sz; if (cast && ((px - x) * offx + (pz - z) * offz) > 0) { px += offx; pz += offz; } else if (cast) { px += offx * .25; pz += offz * .25; } v.push(px, y + .06, pz, sx, sz, k); } n++; };
+  const add = (x, z, y, hx, hz, h, ht) => { quad(x, z, y, hx * 1.08 + .25, hz * 1.04 + .3, h, ht, .55, false); if (sun > .05) quad(x, z, y, hx + .35, hz + .4, h, ht, .75 * sun, true); };
+  const A = truckOBB(T); add(A.x, A.z, T.y, A.hx, A.hz, A.h, T.info.cabTop || 3.2); if (T.tr) { const B = trailerOBB(T); add(B.x, B.z, T.ty, B.hx, B.hz, B.h, T.tr.height || 4); }
+  for (const c of TR.cars) { if (Math.abs(c.x - CAM.pos[0]) > 120 || Math.abs(c.z - CAM.pos[2]) > 120) continue; add(c.x, c.z, c.y, c.wid / 2, c.len / 2, c.h, c.len > 9 ? 3 : 1.6); }
+  drawSoftShadows(v, n, (.5 + .25 * sun) * (1 - L.night * .55));
 }
 function drawGuides() {
   if (G.phase !== 'dock' || !G.truck.tr) return; const T = G.truck, Y = W.endYard; if (!Y) return; const v = [], idx = [];
@@ -2578,6 +2878,7 @@ function collectGlows(vd) {
   if (n > .1) for (const g of W.glows) { const dx = g[0] - cx, dz = g[2] - cz; if (dx * dx + dz * dz > 400 * 400) continue; sprite(SPR_ADD, g[0], g[1], g[2], 1.6 * g[3] * fogK, 1, .85, .6, .55 * n); }
   const M = tractorM(T);
   if (T.lights) for (const h of T.info.heads) { const p = wpos(M, h); sprite(SPR_ADD, p[0], p[1], p[2], (.5 + n * 1.2) * fogK, 1, .95, .82, .5 + n * .4); }
+  if (T.lights && n > .25 && G.quality > .44) { const f = fwd(T.h); const bk = (n - .25) * (1 + L.fogAmt * 1.5 + L.wet * .6); for (const h of T.info.heads) { const p = wpos(M, h); for (let k = 1; k <= 7; k++) { const d = k * 2.6; sprite(SPR_ADD, p[0] + f[0] * d, p[1] - k * .1, p[2] + f[1] * d, .45 + k * .55, 1, .93, .78, .055 * bk * (1 - k / 8.5)); } } }
   for (const m of T.info.markers) { if (!T.lights) break; const p = wpos(M, m); sprite(SPR_ADD, p[0], p[1], p[2], .3 + n * .3, 1, .7, .3, .4 * (.3 + n)); }
   const tails = []; if (T.tr) { M4.trs(_md2, T.tx, T.ty, T.tz, T.th, -(T.tpitchG || 0), T.troll); for (const t of T.tr.tails) tails.push(wpos(_md2, t)); } else for (const t of T.info.tails) tails.push(wpos(M, t));
   const br = T.brakeLight; for (const p of tails) { if (br || (T.lights && n > .2)) sprite(SPR_ADD, p[0], p[1], p[2], br ? .7 : .45, 1, .1, .05, br ? .8 : .5); if (T.revLight) sprite(SPR_ADD, p[0], p[1], p[2] , .5, 1, 1, 1, .6); }
@@ -2600,7 +2901,10 @@ function drawPrecip() {
   if (!RAIN) { RAIN = []; for (let i = 0; i < 1400; i++) RAIN.push([Math.random() * 60 - 30, Math.random() * 30, Math.random() * 60 - 30, .7 + Math.random() * .6]); }
   const cx = CAM.pos[0], cy = CAM.pos[1], cz = CAM.pos[2]; const t = performance.now() / 1000; const vx = fwd(T.h)[0] * T.v, vz = fwd(T.h)[1] * T.v;
   const snow = wx === 'snow' || G.wxSnow;
-  if (!snow) { const D = GLX.lineData; let o = 0; for (let i = 0; i < n; i++) { const d = RAIN[i]; const fall = 16 * d[3]; let y = (d[1] - t * fall) % 30; if (y < 0) y += 30; const x = ((d[0] - vx * t * 0 + 30) % 60 + 60) % 60 - 30, z = ((d[2] + 30) % 60 + 60) % 60 - 30; const px = cx + x, py = cy - 12 + y, pz = cz + z; const sl = .05; D[o++] = px; D[o++] = py; D[o++] = pz; D[o++] = 0; D[o++] = px - vx * sl + .2; D[o++] = py + fall * sl * 1.4; D[o++] = pz - vz * sl; D[o++] = .55 * (1 - L.night * .4); } drawLines(D, n * 2, L.night > .5 ? [.6, .65, .75] : [.78, .82, .9]); }
+  if (!snow) { const D = GLX.lineData; let o = 0; for (let i = 0; i < n; i++) { const d = RAIN[i]; const fall = 16 * d[3]; let y = (d[1] - t * fall) % 30; if (y < 0) y += 30; const x = ((d[0] - vx * t * 0 + 30) % 60 + 60) % 60 - 30, z = ((d[2] + 30) % 60 + 60) % 60 - 30; const px = cx + x, py = cy - 12 + y, pz = cz + z; const sl = .05; D[o++] = px; D[o++] = py; D[o++] = pz; D[o++] = 0; D[o++] = px - vx * sl + .2; D[o++] = py + fall * sl * 1.4; D[o++] = pz - vz * sl; D[o++] = .55 * (1 - L.night * .4); } drawLines(D, n * 2, L.night > .5 ? [.6, .65, .75] : [.78, .82, .9]);
+    const ns = Math.round((G.quality > .8 ? 260 : G.quality > .5 ? 150 : 70) * w), lit = 1 - L.night * .6; const tx = T.x + fwd(T.h)[0] * 8, tz = T.z + fwd(T.h)[1] * 8; SPR_ALPHA.length = 0;
+    for (let i = 0; i < ns; i++) { const cyc = t * 2.6 + (i * .6180339) % 1, id = Math.floor(cyc), ph = cyc - id; let hs = ((i * 73856093) ^ (id * 19349663)) >>> 0; const h1 = (hs % 10007) / 10007, h2 = ((hs >>> 7) % 9973) / 9973; const x = tx + (h1 - .5) * 70, z = tz + (h2 - .5) * 70; const y = terrainH(x, z) + .34; sprite(SPR_ALPHA, x, y + ph * .12, z, .05 + ph * .28, .85 * lit, .88 * lit, .95 * lit, (1 - ph) * .38); }
+    flushSprites(SPR_ALPHA, false, true, CAM.r, CAM.u); SPR_ALPHA.length = 0; }
   else { for (let i = 0; i < n * .6; i++) { const d = RAIN[i]; let y = (d[1] - t * 2.2 * d[3]) % 30; if (y < 0) y += 30; const sw = Math.sin(t * d[3] + i) * .8; const x = ((d[0] + sw + 30) % 60 + 60) % 60 - 30, z = ((d[2] + 30) % 60 + 60) % 60 - 30; sprite(SPR_ALPHA, cx + x, cy - 12 + y, cz + z, .07 + d[3] * .04, 1, 1, 1, .85); } flushSprites(SPR_ALPHA, false, false, CAM.r, CAM.u); SPR_ALPHA.length = 0; }
 }
 // ---------- showroom ----------
@@ -2614,7 +2918,7 @@ function renderShowroom(T, dt) {
 }
 // ---------- frame ----------
 function renderFrame(dt) {
-  gl.viewport(0, 0, CV.width, CV.height); R.dc = 0; R.tris = 0;
+  gl.viewport(0, 0, CV.width, CV.height); R.dc = 0; R.tris = 0; selectShaders(G.showroom ? 1 : G.quality);
   if (G.showroom && G.showTruck) { renderShowroom(G.showTruck, dt); return; }
   if (!W || !G.truck) { gl.clearColor(.05, .06, .1, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); return; }
   updateCamera(dt); computeLighting(false); gl.clearColor(L.fog[0], L.fog[1], L.fog[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
