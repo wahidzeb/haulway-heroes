@@ -1,0 +1,42 @@
+{
+  "id": "/haulway-heroes/",
+  "name": "Haulway Heroes",
+  "short_name": "Haulway Heroes",
+  "description": "Haulway Heroes by Zaib - a premium 3D truck driving game for your phone. Haul fragile glass, livestock, fuel, logs, cars and oversized loads across highways, mountain hairpins, deserts and snowy passes, back trailers into loading docks, and build your trucking career.",
+  "lang": "en",
+  "start_url": "/haulway-heroes/?source=pwa",
+  "scope": "/haulway-heroes/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#11151c",
+  "background_color": "#11151c",
+  "categories": [
+    "games"
+  ],
+  "icons": [
+    {
+      "src": "/haulway-heroes/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/haulway-heroes/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/haulway-heroes/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/haulway-heroes/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
