@@ -57,9 +57,9 @@ canvas#hud{pointer-events:none}
 .btn[disabled]{filter:grayscale(.8) brightness(.7);pointer-events:none}
 .row{display:flex;gap:8px;width:100%}.row>*{flex:1}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;width:100%}
-.logo{text-align:center;line-height:.9;margin:0}
-.logo .l1{display:block;font:900 clamp(30px,min(9vmin,12vh),78px) Impact,"Arial Black",system-ui;letter-spacing:2px;color:#ffc23a;background:linear-gradient(180deg,#fff2b0,#ffc23a 45%,#ff7a1a 52%,#ffb020);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 0 #5a2a00) drop-shadow(0 10px 14px rgba(0,0,0,.6))}
-.logo .l2{display:block;font:900 clamp(24px,min(7vmin,9.5vh),62px) Impact,"Arial Black",system-ui;letter-spacing:6px;color:#fff;filter:drop-shadow(0 3px 0 #a33) drop-shadow(0 8px 12px rgba(0,0,0,.6))}
+.logo{text-align:center;line-height:.9;margin:0;overflow:visible;max-width:100%}
+.logo .l1{display:block;white-space:nowrap;overflow:visible;padding:0 6px;font:900 clamp(28px,min(9vmin,12vh,12vw),60px) Impact,"Arial Black",system-ui;letter-spacing:2px;color:#ffc23a;background:linear-gradient(180deg,#fff2b0,#ffc23a 45%,#ff7a1a 52%,#ffb020);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 0 #5a2a00) drop-shadow(0 10px 14px rgba(0,0,0,.6))}
+.logo .l2{display:block;white-space:nowrap;font:900 clamp(22px,min(7vmin,9.5vh,10vw),50px) Impact,"Arial Black",system-ui;letter-spacing:6px;color:#fff;filter:drop-shadow(0 3px 0 #a33) drop-shadow(0 8px 12px rgba(0,0,0,.6))}
 .byz{font:italic 900 clamp(16px,3.6vmin,26px) Georgia,serif;color:#ffd27a;text-shadow:0 2px 0 #000,0 0 16px rgba(255,176,32,.6);letter-spacing:2px;margin-top:4px;display:inline-block;transform:rotate(-3deg)}
 #scrTitle{justify-content:safe center;background:linear-gradient(90deg,rgba(8,12,24,.72),rgba(8,12,24,.22) 50%,rgba(8,12,24,0));align-items:flex-start;justify-content:center;padding-left:calc(env(safe-area-inset-left) + 4vw)}
 #scrTitle .menuBox{display:flex;flex-direction:column;gap:9px;width:min(380px,92vw)}
@@ -2959,7 +2959,7 @@ function hudLayout() {
   // bottom: speed pill between wheel and pedals
   const steerW = S.ctrl === 'buttons' ? 2 * sbt + 12 : S.ctrl === 'wheel' ? whs : 0; const pedW = Math.round(pw + 8 + pw * 1.15);
   let sx0 = sl + pad + steerW + 8, sx1 = w - sr - pad - pedW - 8; let spw = Math.min(160, sx1 - sx0); let spx, spy; const sph = Math.round(40 * sc);
-  if (spw >= 104) { spx = (sx0 + sx1) / 2 - spw / 2; spy = h - sb - pad - 12 - sph; } else { spw = 140; spx = w / 2 - spw / 2; spy = h - sb - pad - Math.max(whs, ph * 1.1 + 84) - 16 - sph; }
+  if (spw >= 104) { spx = (sx0 + sx1) / 2 - spw / 2; spy = h - sb - pad - 12 - sph; } else { spw = Math.min(w - sl - sr - 2 * pad, Math.round(150 * Math.max(1, sc))); spx = w / 2 - spw / 2; spy = h - sb - pad - Math.max(whs, ph * 1.1 + 84) - 16 - sph; }
   return { port, sc, w, h, sl, st, sr, sb, pad, whs, pw, ph, sbt, btn, mr, mcx, mcy, icx, iw, ih, iy, mir, toastY, spx, spy, spw, sph, steerW, pedW };
 }
 function units() { return SAVE.settings.units === 'mph' ? ['mph', 2.23694] : ['km/h', 3.6]; }
@@ -2990,9 +2990,9 @@ function drawHUD(dt) {
   // ---- compact speed / gear / rpm pill ----
   const spd = Math.abs(T.v) * uMul; const px = LY.spx, py = LY.spy, pw = LY.spw, ph = LY.sph;
   c.save(); c.globalAlpha = .9; glassPanel(c, px, py, pw, ph, ph / 2); c.restore();
-  c.textBaseline = 'middle'; c.textAlign = 'right'; c.fillStyle = '#fff'; c.font = '900 ' + Math.round(22 * sc) + 'px system-ui,Arial'; const sx = px + pw * .5; c.fillText(Math.round(spd), sx, py + ph * .44);
-  c.textAlign = 'left'; c.font = '700 ' + Math.round(9 * sc) + 'px system-ui'; c.fillStyle = '#9bd'; c.fillText(uName, sx + 3, py + ph * .52);
-  const gtxt = T.dir < 0 ? 'R' : T.dir === 0 ? 'N' : (SAVE.settings.gears === 'auto' ? 'D' : 'M') + T.gear; c.textAlign = 'center'; c.font = '900 ' + Math.round(15 * sc) + 'px system-ui'; c.fillStyle = T.dir < 0 ? '#ff6a50' : '#7dffb0'; c.fillText(gtxt, px + pw - ph * .62, py + ph * .44);
+  c.textBaseline = 'middle'; c.textAlign = 'right'; c.fillStyle = '#fff'; c.font = '900 ' + Math.round(22 * sc) + 'px system-ui,Arial'; const sx = px + pw * .46; c.fillText(Math.round(spd), sx, py + ph * .44);
+  c.textAlign = 'left'; c.font = '700 ' + Math.round(9 * sc) + 'px system-ui'; c.fillStyle = '#9bd'; c.fillText(uName, sx + 3, py + ph * .52); const uEnd = sx + 3 + c.measureText(uName).width;
+  const gtxt = T.dir < 0 ? 'R' : T.dir === 0 ? 'N' : (SAVE.settings.gears === 'auto' ? 'D' : 'M') + T.gear; c.font = '900 ' + Math.round(15 * sc) + 'px system-ui'; const gw = c.measureText('M12').width; c.textAlign = 'center'; c.fillStyle = T.dir < 0 ? '#ff6a50' : '#7dffb0'; c.fillText(gtxt, Math.max(px + pw - ph * .62, uEnd + 6 * sc + gw / 2), py + ph * .44);
   // indicators inside the pill
   const ib = G.blinkOn; c.font = '900 ' + Math.round(11 * sc) + 'px system-ui'; c.fillStyle = (T.indL || T.hazard) && ib ? '#3dff6a' : 'rgba(255,255,255,.18)'; c.fillText('◀', px + ph * .42, py + ph * .44); c.fillStyle = (T.indR || T.hazard) && ib ? '#3dff6a' : 'rgba(255,255,255,.18)'; c.fillText('▶', px + pw - ph * .22, py + ph * .44);
   // rpm strip
